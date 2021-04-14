@@ -136,7 +136,7 @@ class Control():
                 self.bullet_state_all = self.state.bullet_state_all
     # function helps AI join the game in a setting delay
     def main(self):
-        AlphaPlant=AImodel.agent(5)
+        AlphaPlant=AImodel.agent(3)
         AlphaPlant.run()
         while not self.done:
             self.event_loop()
