@@ -57,7 +57,7 @@ class Level(tool.State):
     def loadMap(self):
         path1=os.path.abspath('.')
         map_file = 'level_' + str(self.game_info[c.LEVEL_NUM]) + '.json'
-        file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'map', map_file)
+        file_path = os.path.join(path1,'source', 'data', 'map', map_file)
         f = open(file_path)
         self.map_data = json.load(f)
         f.close()

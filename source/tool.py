@@ -32,7 +32,7 @@ class State():
 
 class Control():
     def __init__(self):
-        self.delay=3
+        self.delay = 0.5
 
         self.screen = pg.display.get_surface()
         self.done = False
@@ -48,11 +48,11 @@ class Control():
         self.game_info = {c.CURRENT_TIME:0.0,
                           c.LEVEL_NUM:c.START_LEVEL_NUM}
         #add some varialble
-        self.frequency = 30
+        self.control_fre = 30
         self.count_time = 0  
         self.v_zombie = 1.0/70.0    # 像素/ms
         self.v_bullet = 4*60/1000.0 # 像素/ms
-        self.T_attack = 2000.0        # 攻击间隔ms          
+        self.T_attack = 2000.0        # 攻击间隔ms         
         self.y=0
         self.sun_value=0
         self.has_zombie = 0
@@ -116,7 +116,7 @@ class Control():
             return
         if self.state.state != c.PLAY:
             return
-        if self.count_time < self.frequency:
+        if self.count_time < self.control_fre:
             return
         # 冷却没好
         if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False and \
@@ -126,6 +126,7 @@ class Control():
             return
         # 30*1/30 = 0.5s 每隔0.5s进行一次决策
         self.count_time = 0
+
         '''
         读取每行最右侧植物信息 以及 豌豆射手数量
         Pp[0,i] = 第i行最右侧的植物位置(像素)
@@ -133,16 +134,21 @@ class Control():
         Pp[2,i] = 第i行的豌豆射手数目
         Pp[3,i] = 第i行最右侧的植物位置(Grid)
         '''
+
+        num_of_sunflower = 0 
         plant_pivot = np.zeros((4,5))
         plant_pivot[0,:] -= 1
         plant_pivot[3,:] -= 1
         for y in range(5):
             posX = -1
             for x in range(9):
-                if self.plant_state_all.plant_pos[y,x]!=0:
+                if self.plant_state_all.plant_pos[y,x] != 0:
                     posX = x
-                if self.plant_state_all.plant_pos[y,x]==2:
+                if self.plant_state_all.plant_pos[y,x] == 1:
+                    num_of_sunflower += 1
+                if self.plant_state_all.plant_pos[y,x] == 2:
                     plant_pivot[2,y] += 1
+                 
             plant_pivot[0,y] = self.Grid2PixelsX(posX)
             plant_pivot[3,y] = posX
             plant_pivot[1,y] = self.plant_state_all.plant_health[y,posX]
@@ -169,12 +175,20 @@ class Control():
                 zombie_pivot[0,i] = c.ZOMBIE_START_X
 
         print(zombie_pivot)      
-        xi = [-1,0,1,2,3,4] #决策变量：在哪一行种植
+        xi = [-1,0,1,2,3,4] #决策变量：在哪一行种植向日葵
+        yi = [-1,0,1,2,3,4] #决策变量：在哪一行种植豌豆射手
+        
+        if num_of_sunflower >= 12 or self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False:
+            print("不种向日葵")
+            xi = [-1]
+        if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False or self.sun_value < 100:
+            yi = [-1]
+
         out1 = -1 #求解结果 在哪一行种向日葵 
         out2 = -1 #求解结果：在哪一行种豌豆射手
+        out3 = -1 #求解结果：在哪一行种坚果
 
-        if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False \
-            or self.sun_value < 100: #只能种向日葵
+        if len(yi) == 1: # 只能种向日葵
             best_val = 0
             for each in xi:
                 temp_val = 0
@@ -185,32 +199,31 @@ class Control():
                 if best_val < temp_val:
                     best_val = temp_val
                     out1 = each
-                #elif best_val == temp_val:
 
-        elif self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False: #只能种豌豆射手
-            best_val = -1000
-            for each in xi:
-                sum_loss = 0
-                for row in range(5):
-                    # 检测约束条件
-                    Dist = zombie_pivot[0,row] - plant_pivot[0,row]
-                    if each == row:
-                        Dist -= c.GRID_X_SIZE
-                    During = Dist/self.v_zombie
-                    AD = During * (plant_pivot[2,row] + int(each == row))/self.T_attack
-                    sum_loss += min(AD - zombie_pivot[1,row],0)
-                temp_val = sum_loss 
-                if best_val < temp_val:
-                    best_val = temp_val
-                    out2 = each
-        
+        # elif self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False: #只能种豌豆射手
+        #     best_val = -1000
+        #     for each in yi:
+        #         sum_loss = 0
+        #         for row in range(5):
+        #             # 检测约束条件
+        #             Dist = zombie_pivot[0,row] - plant_pivot[0,row]
+        #             if each == row:
+        #                 Dist -= c.GRID_X_SIZE
+        #             During = Dist/self.v_zombie
+        #             AD = During * (plant_pivot[2,row] + int(each == row))/self.T_attack
+        #             sum_loss += min(AD - zombie_pivot[1,row],0)
+        #         temp_val = sum_loss 
+        #         if best_val < temp_val:
+        #             best_val = temp_val
+        #             out2 = each
+
         else: #都可以种
             best_val = -1000
-            for x in xi:
-                for y in xi:
-                    if x == y and x!= -1:
+            for x in xi: # x是向日葵的决策变量
+                for y in yi: # y是豌豆的决策变量
+                    if x == y and x!= -1: # 在同一个位置种两个植物
                         continue
-                    if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value:
+                    if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value: 
                         continue
                     sum_loss = 0
                     for row in range(5):
@@ -221,18 +234,20 @@ class Control():
                         AD = During * (plant_pivot[2,row] + int(y == row))/self.T_attack
                         sum_loss += min(AD - zombie_pivot[1,row],0)
                         
-                    temp_val = int(x != -1) + 10*sum_loss 
+                    temp_val = int(x != -1) + int(y != -1) + 20*sum_loss 
                     if best_val < temp_val:
                         best_val = temp_val
                         out1 = x
                         out2 = y
         
-        print(out1,out2)
+        print(out1,out2,out3)
         print("------------------------")
         if out1 != -1:
             self.state.my_addPlant(int(plant_pivot[3,out1])+1,out1,c.SUNFLOWER)
         if out2 != -1:
             self.state.my_addPlant(int(plant_pivot[3,out2])+1,out2,c.PEASHOOTER)
+        if out3 != -1:
+            self.state.my_addPlant(0,out3,c.WALLNUT)
         return
 
     def my_update(self):
@@ -364,14 +379,14 @@ def load_all_gfx(directory, colorkey=c.WHITE, accept=('.png', '.jpg', '.bmp', '.
     return graphics
 
 def loadZombieImageRect():
-    file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'entity', 'zombie.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'zombie.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
     return data[c.ZOMBIE_IMAGE_RECT]
 
 def loadPlantImageRect():
-    file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'entity', 'plant.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'plant.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
@@ -381,6 +396,6 @@ pg.init()
 pg.display.set_caption(c.ORIGINAL_CAPTION)
 SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
 
-GFX = load_all_gfx(os.path.join(path1,'AI-for-plant',"resources","graphics"))
+GFX = load_all_gfx(os.path.join(path1,"resources","graphics"))
 ZOMBIE_RECT = loadZombieImageRect()
 PLANT_RECT = loadPlantImageRect()
