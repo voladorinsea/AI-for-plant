@@ -356,10 +356,10 @@ class Level(tool.State):
         # map_x, map_y = self.map.getMapIndex(x, y)
         if not self.menubar.my_checkCardClick(name):
             return 
-        if (map_x<0)|(map_x>4) :
+        if (map_x<0)|(map_x>8) :
             print("Plant denied for invalid x:%d"%map_x)
             return 
-        if (map_y<0)|(map_y>8) :
+        if (map_y<0)|(map_y>4) :
             print("Plant denied for invalid y:%d"%map_y)
             return 
         x ,y = self.map.getMapGridPos(map_x,map_y)
