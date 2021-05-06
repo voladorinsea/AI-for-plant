@@ -1,4 +1,3 @@
-import tensorflow as tf
 import numpy as np
 import time
 from threading import Timer,activeCount
@@ -8,7 +7,7 @@ from threading import Timer,activeCount
 # return Q(s,a)
 class value_network():
     def __init__(self):
-        self.zero=0
+        self.zero=1
 
 # switch on the game
 # play the game
