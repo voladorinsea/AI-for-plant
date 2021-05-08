@@ -47,9 +47,7 @@ class Control():
         self.state = None
         self.game_info = {c.CURRENT_TIME:0.0,
                           c.LEVEL_NUM:c.START_LEVEL_NUM}
-        #add some varialble
-        self.control_fre = 30
-        self.count_time = 0  
+        #add some varialble 
         self.v_zombie = 1.0/70.0    # 像素/ms
         self.v_bullet = 4*60/1000.0 # 像素/ms
         self.T_attack = 2000.0        # 攻击间隔ms         
@@ -116,16 +114,12 @@ class Control():
             return
         if self.state.state != c.PLAY:
             return
-        if self.count_time < self.control_fre:
-            return
         # 冷却没好
         if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False and \
             self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False:
             return
         if self.sun_value <50:
             return
-        # 30*1/30 = 0.5s 每隔0.5s进行一次决策
-        self.count_time = 0
 
         '''
         读取每行最右侧植物信息 以及 豌豆射手数量
@@ -177,68 +171,50 @@ class Control():
         print(zombie_pivot)      
         xi = [-1,0,1,2,3,4] #决策变量：在哪一行种植向日葵
         yi = [-1,0,1,2,3,4] #决策变量：在哪一行种植豌豆射手
+        zi = [-1,0,1,2,3,4] #决策变量：在哪一行种坚果
         
         if num_of_sunflower >= 12 or self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False:
-            print("不种向日葵")
             xi = [-1]
         if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False or self.sun_value < 100:
             yi = [-1]
+        if self.state.menubar.my_checkCardClick(c.WALLNUT) == False or self.sun_value < 50:
+            zi = [-1]
 
-        out1 = -1 #求解结果 在哪一行种向日葵 
-        out2 = -1 #求解结果：在哪一行种豌豆射手
-        out3 = -1 #求解结果：在哪一行种坚果
+        out1 = -1 # 求解结果 在哪一行种向日葵 
+        out2 = -1 # 求解结果：在哪一行种豌豆射手
+        out3 = -1 # 求解结果：在哪一行种坚果
 
-        if len(yi) == 1: # 只能种向日葵
-            best_val = 0
-            for each in xi:
-                temp_val = 0
-                # 约束条件折算为损失函数
-                if each != -1:
-                    Dist = zombie_pivot[0,each] - plant_pivot[0,each] - c.GRID_X_SIZE
-                    temp_val = Dist
+        best_val = -1000
+        for x in xi: # x是向日葵的决策变量
+            for y in yi: # y是豌豆的决策变量
+                if x == y and x!= -1: # 在同一个位置种两个植物
+                    continue
+                if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value: 
+                    continue
+                attack_value = 0
+                for row in range(5):
+                    Dist = zombie_pivot[0,row] - plant_pivot[0,row]
+                    if x == row or y == row:
+                        Dist -= c.GRID_X_SIZE
+                    During = Dist/self.v_zombie
+                    AD = During * (plant_pivot[2,row] + int(y == row))/self.T_attack
+                    attack_value += min(AD - zombie_pivot[1,row],0)
+
+                sun_value = 0
+                if x != -1:
+                    sun_value = (zombie_pivot[0,x] - plant_pivot[0,x] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
+
+                future_value = 0
+                if y != -1:
+                    sun_value = (zombie_pivot[0,y] - plant_pivot[0,y] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
+                
+                temp_val = sun_value + future_value + 2*attack_value 
+                
+                print(temp_val)
                 if best_val < temp_val:
                     best_val = temp_val
-                    out1 = each
-
-        # elif self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False: #只能种豌豆射手
-        #     best_val = -1000
-        #     for each in yi:
-        #         sum_loss = 0
-        #         for row in range(5):
-        #             # 检测约束条件
-        #             Dist = zombie_pivot[0,row] - plant_pivot[0,row]
-        #             if each == row:
-        #                 Dist -= c.GRID_X_SIZE
-        #             During = Dist/self.v_zombie
-        #             AD = During * (plant_pivot[2,row] + int(each == row))/self.T_attack
-        #             sum_loss += min(AD - zombie_pivot[1,row],0)
-        #         temp_val = sum_loss 
-        #         if best_val < temp_val:
-        #             best_val = temp_val
-        #             out2 = each
-
-        else: #都可以种
-            best_val = -1000
-            for x in xi: # x是向日葵的决策变量
-                for y in yi: # y是豌豆的决策变量
-                    if x == y and x!= -1: # 在同一个位置种两个植物
-                        continue
-                    if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value: 
-                        continue
-                    sum_loss = 0
-                    for row in range(5):
-                        Dist = zombie_pivot[0,row] - plant_pivot[0,row]
-                        if x == row or y == row:
-                            Dist -= c.GRID_X_SIZE
-                        During = Dist/self.v_zombie
-                        AD = During * (plant_pivot[2,row] + int(y == row))/self.T_attack
-                        sum_loss += min(AD - zombie_pivot[1,row],0)
-                        
-                    temp_val = int(x != -1) + int(y != -1) + 20*sum_loss 
-                    if best_val < temp_val:
-                        best_val = temp_val
-                        out1 = x
-                        out2 = y
+                    out1 = x
+                    out2 = y
         
         print(out1,out2,out3)
         print("------------------------")
@@ -287,11 +263,9 @@ class Control():
                 #     子弹状态：self.bullet_state_all[0].state（fly：正常飞行；explode：击中目标）
                 # 无子弹则为[]
                 self.bullet_state_all = self.state.bullet_state_all
-    
-    def AI(self):
-        self.LinearControl()
+
     def run(self):
-        self.AI()
+        self.LinearControl()
         self.timer = Timer(self.delay, self.run,())
         self.timer.start()
 
@@ -304,9 +278,6 @@ class Control():
             pg.display.update()
             self.clock.tick(self.fps)
             self.my_update()
-            self.count_time += 1
-            #if c.AUTO:
-            #self.LinearControl()
         print('game over')
 
 def get_image(sheet, x, y, width, height, colorkey=c.BLACK, scale=1):
