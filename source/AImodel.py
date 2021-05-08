@@ -82,7 +82,7 @@ class value_network():
 
 class env():
     def __init__(self,end,cycle,value_network):
-        self.time=0
+        self.time=1
         self.end=end
         self.env=gym.make('CartPole-v0')
         self.cycle = cycle
