@@ -105,6 +105,12 @@ class Control():
         if map_x < 0:
             return 0
         return map_x * c.GRID_X_SIZE + c.GRID_X_SIZE//2 + c.MAP_OFFSET_X
+    
+    def PixelsX2Grid(self,pixelsX):
+        if pixelsX > SCREEN_WIDTH:
+            return 8
+        else:
+            return int(pixelsX/GRID_X_SIZ) - 1
                 
     def getMapGridPosY(self, map_y):
         return map_y * c.GRID_Y_SIZE + c.GRID_Y_SIZE//5 * 3 + c.MAP_OFFSET_Y
@@ -191,6 +197,9 @@ class Control():
                     continue
                 if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value: 
                     continue
+                
+                # fatal_row = 0
+                # danger = 0
                 attack_value = 0
                 for row in range(5):
                     Dist = zombie_pivot[0,row] - plant_pivot[0,row]
@@ -198,7 +207,14 @@ class Control():
                         Dist -= c.GRID_X_SIZE
                     During = Dist/self.v_zombie
                     AD = During * (plant_pivot[2,row] + int(y == row))/self.T_attack
+                    # if danger > AD - zombie_pivot[1,row]:
+                    #     fatal_row = row
+                    #     danger = AD - zombie_pivot[1,row]
                     attack_value += min(AD - zombie_pivot[1,row],0)
+
+                # if attack_value < 0 and int(x!=-1)*50 + int(y!=-1)*100 + 50 < self.sun_value:
+                #     out3 =  fatal_row
+                #     nut_position = self.PixelsX2Grid(zombie_pivot[0,row])
 
                 sun_value = 0
                 if x != -1:

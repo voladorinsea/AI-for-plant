@@ -17,10 +17,12 @@
         {"time":106000, "map_y":1, "name":"Zombie"},
         {"time":120000, "map_y":0, "name":"FlagZombie"},
         {"time":121000, "map_y":1, "name":"FlagZombie"},
-        {"time":122000, "map_y":2, "name":"FlagZombie"},
+        {"time":122000, "map_y":2, "name":"Zombie"},
         {"time":123000, "map_y":3, "name":"FlagZombie"},
-        {"time":124000, "map_y":0, "name":"FlagZombie"},
+        {"time":124000, "map_y":0, "name":"Zombie"},
         {"time":125000, "map_y":4, "name":"FlagZombie"},
-        {"time":126000, "map_y":1, "name":"FlagZombie"}
+        {"time":126000, "map_y":1, "name":"FlagZombie"},
+        {"time":130000, "map_y":2, "name":"FlagZombie"},
+        {"time":132000, "map_y":3, "name":"FlagZombie"}
     ]
 }
