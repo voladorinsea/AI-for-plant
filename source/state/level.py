@@ -8,7 +8,6 @@ from .. import tool
 from .. import constants as c
 from ..component import map, plant, zombie, menubar
 
-
 #Edit by Chenxin Jiang
 class zombie_state_single():
     def __init__(self,name,x,y,health,state):
@@ -132,16 +131,25 @@ class Level(tool.State):
 
     def initChoose(self):
         self.state = c.CHOOSE
+        #选择植物
         self.panel = menubar.Panel(menubar.all_card_list, self.map_data[c.INIT_SUN_NAME])
 
     def choose(self, mouse_pos, mouse_click):
-        if mouse_pos and mouse_click[0]:
-            self.panel.checkCardClick(mouse_pos)
-            if self.panel.checkStartButtonClick(mouse_pos):
-                self.initPlay(self.panel.getSelectedCards())
+        if c.AUTO:
+            self.autoChoose()
+        else:
+            if mouse_pos and mouse_click[0]:
+                self.panel.checkCardClick(mouse_pos)
+                if self.panel.checkStartButtonClick(mouse_pos):
+                    self.initPlay(self.panel.getSelectedCards())
 
+    def autoChoose(self):
+        self.initPlay(self.panel.mySelectedCards())
+    
     def initPlay(self, card_list):
         self.state = c.PLAY
+        self.restart = True
+        self.result = c.GAMING
         if self.bar_type == c.CHOOSEBAR_STATIC:
             self.menubar = menubar.MenuBar(card_list, self.map_data[c.INIT_SUN_NAME])
         else:
@@ -155,12 +163,18 @@ class Level(tool.State):
             self.produce_sun = False
         self.sun_timer = self.current_time
 
+        self.has_zombie = 0
+        self.zombie_state_all = []
+        self.has_bullet = 0
+        self.bullet_state_all = []
+
         self.removeMouseImage()
         self.setupGroups()
         self.setupZombies()
         self.setupCars()
 
     def play(self, mouse_pos, mouse_click):
+        self.restart = False
         self.sun_value = self.menubar.sun_value
 
         if self.zombie_start_time == 0:
@@ -234,14 +248,14 @@ class Level(tool.State):
                 self.sun_group.add(plant.Sun(x, 0, x, y))
 
         if  c.AUTO:
-             for sun in self.sun_group:
+            for sun in self.sun_group:
                 if sun.autoCollection():
-                     self.menubar.increaseSunValue(sun.sun_value)
+                    self.menubar.increaseSunValue(sun.sun_value)
 
         if not self.drag_plant and mouse_pos and mouse_click[0]:
             for sun in self.sun_group:
                 if sun.autoCollection():
-                     self.menubar.increaseSunValue(sun.sun_value)
+                    self.menubar.increaseSunValue(sun.sun_value)
                 if sun.checkCollision(mouse_pos[0], mouse_pos[1]):
                     self.menubar.increaseSunValue(sun.sun_value)
 
@@ -621,7 +635,7 @@ class Level(tool.State):
             elif plant.state != c.IDLE:
                 plant.setIdle()
         elif(plant.name == c.WALLNUTBOWLING or
-             plant.name == c.REDWALLNUTBOWLING):
+            plant.name == c.REDWALLNUTBOWLING):
             pass
         else:
             can_attack = False
@@ -660,12 +674,20 @@ class Level(tool.State):
 
     def checkGameState(self):
         if self.checkVictory():
-            self.game_info[c.LEVEL_NUM] += 1
-            self.next = c.GAME_VICTORY
-            self.done = True
+            if c.AUTO:
+                self.initPlay(self.panel.mySelectedCards())
+                self.result =c.WIN
+            else:
+                self.game_info[c.LEVEL_NUM] += 1
+                self.next = c.GAME_VICTORY
+                self.done = True
         elif self.checkLose():
-            self.next = c.GAME_LOSE
-            self.done = True
+            if c.AUTO:
+                self.initPlay(self.panel.mySelectedCards())
+                self.result = c.LOSE
+            else:
+                self.next = c.GAME_LOSE
+                self.done = True
 
     def drawMouseShow(self, surface):
         if self.hint_plant:
