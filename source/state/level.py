@@ -150,6 +150,8 @@ class Level(tool.State):
         self.state = c.PLAY
         self.restart = True
         self.result = c.GAMING
+        gm.set_value("State",self.result)
+        gm.set_value("restart",self.restart)
         if self.bar_type == c.CHOOSEBAR_STATIC:
             self.menubar = menubar.MenuBar(card_list, self.map_data[c.INIT_SUN_NAME])
         else:

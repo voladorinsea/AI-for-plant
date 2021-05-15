@@ -301,6 +301,7 @@ class Control():
         while not self.done:
             #value=gm.get_value('State')
             #print(value)
+            
             self.event_loop()
             self.update() 
             pg.display.update()

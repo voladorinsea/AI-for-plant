@@ -131,6 +131,10 @@ class env():
 
     def run(self):
         #action = self.agent.execute()
+        if gm.get_value("State") == None:
+            self.timer = Timer(self.delay, self.run,())
+            self.timer.start()
+            return 
         self.count = 1 + self.count
         self.row =self.SelectRow()
         NowState = self.StateZip()
