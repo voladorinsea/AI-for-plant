@@ -666,6 +666,13 @@ class Level(tool.State):
                 if plant.health <= 0:
                     self.killPlant(plant)
 
+    def killallplants(self):
+        for i in range(self.map_y_len):
+            for plant in self.plant_groups[i]:
+               self.killPlant(plant)
+
+
+
     def checkVictory(self):
         if len(self.zombie_list) > 0:
             return False
@@ -686,7 +693,8 @@ class Level(tool.State):
             if c.AUTO:
                 self.result =c.WIN
                 gm.set_value("State",self.result)
-                time.sleep(1)
+                self.killallplants()
+                time.sleep(3)
                 self.initPlay(self.panel.mySelectedCards())
                 
             else:
@@ -697,7 +705,8 @@ class Level(tool.State):
             if c.AUTO:
                 self.result = c.LOSE
                 gm.set_value("State",self.result)
-                time.sleep(1)
+                self.killallplants()
+                time.sleep(3)
                 self.initPlay(self.panel.mySelectedCards())
                 
             else:

@@ -35,7 +35,7 @@ class value_network():
         v1 = np.asarray(self.state_valuesearch(state))
         for i in range(19):
             if actionList[i]==0:
-                ActionGraph[i]=-1
+                ActionGraph[i]=-1000
                 continue
             ActionGraph[i]=v1[0][i]*actionList[i]
             
@@ -89,7 +89,7 @@ class value_network():
 # return {observation,action,reward,last_observation}
 
 class env():
-    def __init__(self,cycle,value_network,delay=2):
+    def __init__(self,cycle,value_network,delay=1):
         self.time=1
         #self.end=end
         #elf.env=gym.make('CartPole-v0')
@@ -158,6 +158,7 @@ class env():
         self.count = 1 + self.count
         
         NowState = self.StateZip()
+        print(NowState)
         self.GameState = gm.get_value("State")
         if self.GameState == c.LOSE:
             reward = -1
@@ -165,11 +166,19 @@ class env():
             reward = 0
         elif self.GameState == c.WIN:
             reward = 1
-
+        if reward == 1:
+            print("The reward is:",reward)
+       
         if self.time !=1:
             self.value_network.gradient(NowState, reward, self.last_state,self.action)
         else:
             self.time = 2
+        
+        while(gm.get_value("State") != c.GAMING):
+            self.row =self.SelectRow()
+            self.updateState()
+            NowState = self.StateZip()
+
         action=self.value_network.policysearch(NowState,self.SelectAction())
         print(action)
         if action <9 and action >=0:
@@ -225,10 +234,10 @@ class env():
                 ZombiePos=850
             else:
                 ZombiePos = ZombiePos/ZombieHealth
-            return [ZombieHealth,ZombiePos,ZombieFrontal]
+            return [ZombieHealth,ZombiePos/850,ZombieFrontal/850]
         else:
             ZombiePos = 850
-            return [ZombieHealth,ZombiePos,ZombieFrontal]
+            return [ZombieHealth,ZombiePos/850,ZombieFrontal/850]
 
     def SelectRow(self):
         minus=850
