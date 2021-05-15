@@ -12,7 +12,7 @@ import random
 class value_network():
     def __init__(self,learning_rate,gama,epsilon):
         self.learning_rate=learning_rate
-        self.w=np.zeros([13,19])
+        self.w=np.mat(np.zeros([13,19]))
         self.gama=gama
         self.epsilon=epsilon
         self.PEASHOOTERcd = gm.get_value("PEASHOOTER_COOL")
@@ -31,16 +31,27 @@ class value_network():
         action = 1 if out2<=50 else 0
         '''
         # based on epsilon-greedy policy
-        v1 = self.state_valuesearch(state)
-        ActionGraph = v1*actionList
+        ActionGraph=np.ones(19)
+        v1 = np.asarray(self.state_valuesearch(state))
+        for i in range(19):
+            if actionList[i]==0:
+                ActionGraph[i]=-1000
+                continue
+            ActionGraph[i]=v1[0][i]*actionList[i]
+            
         maxindex = ActionGraph.argmax()
-
+        print(ActionGraph)
         gen1=random.random()
         if gen1>=self.epsilon:
             return maxindex
         else:
-            gen2=random.randint(0,18)
-            return gen2
+            choose=[]
+            for i in range(19):
+                if actionList[i]==1:
+                    choose.append(i)
+            n=len(choose)
+            gen2=random.randint(0,n-1)
+            return choose[gen2]
 
     def gradient(self,state,reward,last_state,action):
         next_valueList=self.state_valuesearch(state)
@@ -49,12 +60,12 @@ class value_network():
         maxvalue = next_valueList.max()
         sample_value=reward+self.gama*maxvalue
         evaluate_value=self.state_valuesearch(last_state)
-        maxvalue2 = evaluate_value[action]
+        maxvalue2 = evaluate_value[0,action]
         
         #last_state=np.mat(last_state).reshape(1,4)
-        action=np.mat(self.action_to_onehot(action)).reshape(1,19)
-
-        t=np.mat(last_state).reshape(1,13).T*action
+        action=np.matrix(self.action_to_onehot(action))
+        last_state=np.matrix(last_state).T
+        t=last_state*action
         delta_w=self.learning_rate*(sample_value-maxvalue2)*t
         #print(delta_w)
         self.w=self.w+delta_w
@@ -66,7 +77,7 @@ class value_network():
         state=np.array(state)
         v1=np.matmul(state,self.w)
         # print(value0)
-        return v1
+        return v1[0]
     def action_to_onehot(self,action):
         actionlist = np.zeros(19)
         actionlist[action] = 1
@@ -235,7 +246,7 @@ class env():
         if self.SUNFLOWERcd == False:
             Action[9:18] = 0
         if self.SunValue < 50:
-            Action[0:19] = 0
+            Action[0:18] = 0
         elif 50 <= self.SunValue and self.SunValue < 100:
             Action[0:9] = 0
 
