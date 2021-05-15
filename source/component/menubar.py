@@ -26,6 +26,8 @@ plant_frozen_time_list = [7500, 7500, 7500, 30000, 50000, 7500, 7500, 7500, 7500
                           30000, 7500, 50000, 7500, 7500, 50000, 30000, 0, 0]
 all_card_list = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]
 
+select_card_list = [0,1,2,3,4,5,6,7]
+
 def getSunValueImage(sun_value):
     font = pg.font.SysFont(None, 22)
     width = 32
@@ -323,13 +325,18 @@ class Panel():
             y >= self.button_rect.y and y <= self.button_rect.bottom):
            return True
         return False
-
+    
     def getSelectedCards(self):
         card_index_list = []
         for card in self.selected_cards:
             card_index_list.append(card.name_index)
         return card_index_list
-
+    
+    def mySelectedCards(self):
+        #auto select card
+        card_index_list = select_card_list
+        return card_index_list
+    
     def draw(self, surface):
         self.menu_image.blit(self.value_image, self.value_rect)
         surface.blit(self.menu_image, self.menu_rect)

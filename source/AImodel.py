@@ -145,4 +145,3 @@ class env():
         self.value_network.gradient(self.state, reward, self.last_state,action)
         self.timer = Timer(self.delay, self.run,())
         self.timer.start()
-        

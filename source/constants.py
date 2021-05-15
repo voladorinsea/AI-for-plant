@@ -2,8 +2,15 @@ __author__ = 'marble_xu'
 
 START_LEVEL_NUM = 1
 
+#edit by jiangpin
 AUTO = True
 DEBUG = False
+#game lose or win
+LOSE = 0
+GAMING = 1
+WIN  = 2
+#
+
 ORIGINAL_CAPTION = 'Plant VS Zombies Game'
 
 SCREEN_WIDTH = 800
