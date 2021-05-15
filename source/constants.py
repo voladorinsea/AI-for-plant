@@ -1,6 +1,6 @@
 __author__ = 'marble_xu'
 
-START_LEVEL_NUM = 0
+START_LEVEL_NUM = 1
 
 #edit by jiangpin
 AUTO = True

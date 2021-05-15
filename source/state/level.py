@@ -55,7 +55,7 @@ class Level(tool.State):
 
     def loadMap(self):
         map_file = 'level_' + str(self.game_info[c.LEVEL_NUM]) + '.json'
-        file_path = os.path.join('source', 'data', 'map', map_file)
+        file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'map', map_file)
         f = open(file_path)
         self.map_data = json.load(f)
         f.close()
@@ -370,10 +370,10 @@ class Level(tool.State):
         # map_x, map_y = self.map.getMapIndex(x, y)
         if not self.menubar.my_checkCardClick(name):
             return 
-        if (map_x<0)|(map_x>8) :
+        if (map_x<0)|(map_x>4) :
             print("Plant denied for invalid x:%d"%map_x)
             return 
-        if (map_y<0)|(map_y>4) :
+        if (map_y<0)|(map_y>8) :
             print("Plant denied for invalid y:%d"%map_y)
             return 
         x ,y = self.map.getMapGridPos(map_x,map_y)
