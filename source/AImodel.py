@@ -95,6 +95,7 @@ class env():
         self.exit = 1
         gm.set_value("exit",self.exit)
 
+
     def episode_generate(self):
         self.time=0
         self.observation=self.env.reset()#np.append(self.env.reset(),[1],axis=0) 
@@ -104,8 +105,13 @@ class env():
         self.episode_generate()
         self.state=self.observation
 
-        
-    
+    def updateState(self):
+        self.Plant = gm.get_value("plant_state_all")
+        self.Zombie = gm.get_value("zombie_state_all")
+        self.hasZombie = gm.get_value("has_zombie")
+        self.PEASHOOTERcd = gm.get_value("PEASHOOTER_COOL")
+        self.SUNFLOWERcd = gm.get_value("SUNFLOWER_COOL")
+        self.SunValue = gm.get_value("sun_value")
 
 
     def training(self):
@@ -135,8 +141,11 @@ class env():
             self.timer = Timer(self.delay, self.run,())
             self.timer.start()
             return 
-        self.count = 1 + self.count
+        
         self.row =self.SelectRow()
+        self.updateState()
+        self.count = 1 + self.count
+        
         NowState = self.StateZip()
         self.GameState = gm.get_value("State")
         if self.GameState == c.LOSE:
@@ -186,7 +195,9 @@ class env():
 
     def PlantHandle(self,row):
         #gm.set_value("plant_state_all",self.plant_state_all)
-        return self.Plant[row,:]
+        #print(self.Plant)
+
+        return self.Plant.plant_pos[row,:]
 
     def ZombieHandle(self,row):
         ZombieHealth = 0
@@ -210,7 +221,7 @@ class env():
         return row 
     def StateZip(self):
 
-        IntactState =  self.PlantHandle(self.row)
+        IntactState =  list(self.PlantHandle(self.row))
         IntactState.extend(self.ZombieHandle(self.row))
         IntactState.append(gm.get_value("sun_value"))
         return IntactState
@@ -218,17 +229,18 @@ class env():
     def SelectAction(self):
         Action = np.ones(19)
         #Action = Action + 1
+        self.updateState()
         if self.PEASHOOTERcd == False:
             Action[0:9] = 0
         if self.SUNFLOWERcd == False:
-            Action[9:19] = 0
+            Action[9:18] = 0
         if self.SunValue < 50:
             Action[0:19] = 0
-        elif 50 < self.SunValue and self.SunValue < 100:
+        elif 50 <= self.SunValue and self.SunValue < 100:
             Action[0:9] = 0
 
         for i in range(9):
-            if self.Plant[self.row,i] != 0 :
+            if self.Plant.plant_pos[self.row,i] != 0 :
                 Action[i] = 0
                 Action[i+9] = 0
         
