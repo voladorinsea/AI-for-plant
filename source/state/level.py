@@ -7,7 +7,7 @@ import numpy as np
 from .. import tool
 from .. import constants as c
 from ..component import map, plant, zombie, menubar
-
+path1=os.path.abspath('.')
 #Edit by Chenxin Jiang
 class zombie_state_single():
     def __init__(self,name,x,y,health,state):
@@ -55,7 +55,7 @@ class Level(tool.State):
 
     def loadMap(self):
         map_file = 'level_' + str(self.game_info[c.LEVEL_NUM]) + '.json'
-        file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'map', map_file)
+        file_path = os.path.join(path1,'source', 'data', 'map', map_file)
         f = open(file_path)
         self.map_data = json.load(f)
         f.close()

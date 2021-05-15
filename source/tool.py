@@ -282,7 +282,7 @@ class Control():
         self.timer.start()
 
     def main(self):
-        self.run()
+        #self.run()
         while not self.done:
             self.event_loop()
             self.update() 
@@ -364,14 +364,14 @@ def load_all_gfx(directory, colorkey=c.WHITE, accept=('.png', '.jpg', '.bmp', '.
     return graphics
 
 def loadZombieImageRect():
-    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'zombie.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'zombie.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
     return data[c.ZOMBIE_IMAGE_RECT]
 
 def loadPlantImageRect():
-    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'plant.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'plant.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
@@ -381,6 +381,6 @@ pg.init()
 pg.display.set_caption(c.ORIGINAL_CAPTION)
 SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
 
-GFX = load_all_gfx(os.path.join(path1,"AI-for-plant","resources","graphics"))
+GFX = load_all_gfx(os.path.join(path1,"resources","graphics"))
 ZOMBIE_RECT = loadZombieImageRect()
 PLANT_RECT = loadPlantImageRect()
