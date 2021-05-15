@@ -39,5 +39,4 @@ class agent():
         self.timer = Timer(self.delay, self.run,())
         self.timer.start()
 
-def RLplanning(env,value_network,agent):
-    1
+
