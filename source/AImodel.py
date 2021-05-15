@@ -35,7 +35,7 @@ class value_network():
         v1 = np.asarray(self.state_valuesearch(state))
         for i in range(19):
             if actionList[i]==0:
-                ActionGraph[i]=-1000
+                ActionGraph[i]=-1
                 continue
             ActionGraph[i]=v1[0][i]*actionList[i]
             
@@ -221,14 +221,24 @@ class env():
                     ZombiePos = each.health*each.x+ZombiePos
                     if ZombieFrontal > each.x:
                         ZombieFrontal = each.x
-            ZombiePos = ZombiePos/ZombieHealth
+            if ZombieHealth==0:
+                ZombiePos=850
+            else:
+                ZombiePos = ZombiePos/ZombieHealth
             return [ZombieHealth,ZombiePos,ZombieFrontal]
         else:
             ZombiePos = 850
             return [ZombieHealth,ZombiePos,ZombieFrontal]
 
     def SelectRow(self):
-        row = 1
+        minus=850
+        row=-1
+        for i in range(5):
+            if self.ZombieHandle(i)[2]<minus:
+                minus=self.ZombieHandle(i)[2]
+                row=i
+        if row==-1:
+            row=random.randint(0,4)
         return row 
     def StateZip(self):
 
