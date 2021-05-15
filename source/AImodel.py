@@ -235,7 +235,7 @@ class env():
         if self.SUNFLOWERcd == False:
             Action[9:18] = 0
         if self.SunValue < 50:
-            Action[0:19] = 0
+            Action[0:18] = 0
         elif 50 <= self.SunValue and self.SunValue < 100:
             Action[0:9] = 0
 
