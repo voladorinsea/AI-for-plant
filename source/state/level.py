@@ -6,7 +6,9 @@ import pygame as pg
 import numpy as np
 from .. import tool
 from .. import constants as c
+import source.GlobalManager as gm
 from ..component import map, plant, zombie, menubar
+import time
 path1=os.path.abspath('.')
 #Edit by Chenxin Jiang
 class zombie_state_single():
@@ -41,8 +43,10 @@ class Level(tool.State):
         self.bullet_state_all = []
         #self.frozen_dict = {}
         self.plant_state_all = plant_state_map(np.zeros((5,9)),np.zeros((5,9)))
+        
 
     def startup(self, current_time, persist):
+        
         self.game_info = persist
         self.persist = self.game_info
         self.game_info[c.CURRENT_TIME] = current_time
@@ -147,9 +151,13 @@ class Level(tool.State):
         self.initPlay(self.panel.mySelectedCards())
     
     def initPlay(self, card_list):
+        
+        #value=gm.get_value('a')
         self.state = c.PLAY
         self.restart = True
         self.result = c.GAMING
+        gm.set_value("State",self.result)
+        gm.set_value("restart",self.restart)
         if self.bar_type == c.CHOOSEBAR_STATIC:
             self.menubar = menubar.MenuBar(card_list, self.map_data[c.INIT_SUN_NAME])
         else:
@@ -675,16 +683,22 @@ class Level(tool.State):
     def checkGameState(self):
         if self.checkVictory():
             if c.AUTO:
-                self.initPlay(self.panel.mySelectedCards())
                 self.result =c.WIN
+                gm.set_value("State",self.result)
+                time.sleep(1)
+                self.initPlay(self.panel.mySelectedCards())
+                
             else:
                 self.game_info[c.LEVEL_NUM] += 1
                 self.next = c.GAME_VICTORY
                 self.done = True
         elif self.checkLose():
             if c.AUTO:
-                self.initPlay(self.panel.mySelectedCards())
                 self.result = c.LOSE
+                gm.set_value("State",self.result)
+                time.sleep(1)
+                self.initPlay(self.panel.mySelectedCards())
+                
             else:
                 self.next = c.GAME_LOSE
                 self.done = True
