@@ -1,16 +1,16 @@
 __author__ = 'marble_xu'
 
-import os
-import sys
-#path=os.getcwd()
-sys.path.append("..\source\AImodel.py")
-import sched
 import time
+from threading import Timer,activeCount
+import os
 import json
 from abc import abstractmethod
 import pygame as pg
+import numpy as np
+from random import shuffle
 from . import constants as c
 from . import AImodel
+path1=os.path.abspath('.')
 class State():
     def __init__(self):
         self.start_time = 0.0
@@ -33,6 +33,8 @@ class State():
 
 class Control():
     def __init__(self):
+        self.delay=0.5
+
         self.screen = pg.display.get_surface()
         self.done = False
         self.clock = pg.time.Clock()
@@ -46,7 +48,12 @@ class Control():
         self.state = None
         self.game_info = {c.CURRENT_TIME:0.0,
                           c.LEVEL_NUM:c.START_LEVEL_NUM}
-        #add some varialble                  
+        #add some varialble
+        self.frequency = 30
+        self.count_time = 0  
+        self.v_zombie = 1.0/70.0    # 像素/ms
+        self.v_bullet = 4*60/1000.0 # 像素/ms
+        self.T_attack = 2000.0        # 攻击间隔ms          
         self.y=0
         self.sun_value=0
         self.has_zombie = 0
@@ -86,7 +93,7 @@ class Control():
             elif event.type == pg.MOUSEBUTTONDOWN:
                 self.mouse_pos = pg.mouse.get_pos()
                 self.mouse_click[0], _, self.mouse_click[1] = pg.mouse.get_pressed()
-                print('pos:', self.mouse_pos, ' mouse:', self.mouse_click)
+                #print('pos:', self.mouse_pos, ' mouse:', self.mouse_click)
     
     def ai_test(self):
         if self.state_name == c.LEVEL:
@@ -96,6 +103,138 @@ class Control():
                     self.state.my_addPlant(2,self.y,c.PEASHOOTER)
                     self.y = self.y +1
                     print("y is%d"%self.y)
+    
+    def Grid2PixelsX(self, map_x):
+        if map_x < 0:
+            return 0
+        return map_x * c.GRID_X_SIZE + c.GRID_X_SIZE//2 + c.MAP_OFFSET_X
+                
+    def getMapGridPosY(self, map_y):
+        return map_y * c.GRID_Y_SIZE + c.GRID_Y_SIZE//5 * 3 + c.MAP_OFFSET_Y
+
+    def LinearControl(self):
+        if self.state_name != c.LEVEL:
+            return
+        if self.state.state != c.PLAY:
+            return
+        if self.count_time < self.frequency:
+            return
+        # 冷却没好
+        if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False and \
+            self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False:
+            return
+        if self.sun_value <50:
+            return
+        # 30*1/30 = 0.5s 每隔0.5s进行一次决策
+        self.count_time = 0
+        '''
+        读取每行最右侧植物信息 以及 豌豆射手数量
+        Pp[0,i] = 第i行最右侧的植物位置(像素)
+        Pp[1,i] = 第i行最右侧的植物血量
+        Pp[2,i] = 第i行的豌豆射手数目
+        Pp[3,i] = 第i行最右侧的植物位置(Grid)
+        '''
+        plant_pivot = np.zeros((4,5))
+        plant_pivot[0,:] -= 1
+        plant_pivot[3,:] -= 1
+        for y in range(5):
+            posX = -1
+            for x in range(9):
+                if self.plant_state_all.plant_pos[y,x]!=0:
+                    posX = x
+                if self.plant_state_all.plant_pos[y,x]==2:
+                    plant_pivot[2,y] += 1
+            plant_pivot[0,y] = self.Grid2PixelsX(posX)
+            plant_pivot[3,y] = posX
+            plant_pivot[1,y] = self.plant_state_all.plant_health[y,posX]
+
+        '''
+        简化僵尸模型1.0
+        将第i行的多只僵尸合并为一只僵尸
+        Zp[0,i] = 第i行僵尸血量加权位置
+        Zp[1,i] = 第i行僵尸血量总和
+        '''
+        zombie_pivot = np.zeros((2,5))
+        if self.has_zombie == 1:
+            for i in range(len(self.zombie_state_all)):
+                tempY = self.zombie_state_all[i].y
+                tempX = self.zombie_state_all[i].x
+                tempH = self.zombie_state_all[i].health
+                if tempX < c.ZOMBIE_START_X:
+                    zombie_pivot[0,tempY] += tempX*tempH   
+                zombie_pivot[1,tempY] += tempH
+        for i in range(5):
+            if zombie_pivot[1,i] != 0:
+                zombie_pivot[0,i]/=zombie_pivot[1,i]
+            else:
+                zombie_pivot[0,i] = c.ZOMBIE_START_X
+
+        print(zombie_pivot)      
+        xi = [-1,0,1,2,3,4] #决策变量：在哪一行种植
+        out1 = -1 #求解结果 在哪一行种向日葵 
+        out2 = -1 #求解结果：在哪一行种豌豆射手
+
+        if self.state.menubar.my_checkCardClick(c.PEASHOOTER) == False \
+            or self.sun_value < 100: #只能种向日葵
+            best_val = 0
+            for each in xi:
+                temp_val = 0
+                # 约束条件折算为损失函数
+                if each != -1:
+                    Dist = zombie_pivot[0,each] - plant_pivot[0,each] - c.GRID_X_SIZE
+                    temp_val = Dist
+                if best_val < temp_val:
+                    best_val = temp_val
+                    out1 = each
+                #elif best_val == temp_val:
+
+        elif self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False: #只能种豌豆射手
+            best_val = -1000
+            for each in xi:
+                sum_loss = 0
+                for row in range(5):
+                    # 检测约束条件
+                    Dist = zombie_pivot[0,row] - plant_pivot[0,row]
+                    if each == row:
+                        Dist -= c.GRID_X_SIZE
+                    During = Dist/self.v_zombie
+                    AD = During * (plant_pivot[2,row] + int(each == row))/self.T_attack
+                    sum_loss += min(AD - zombie_pivot[1,row],0)
+                temp_val = sum_loss 
+                if best_val < temp_val:
+                    best_val = temp_val
+                    out2 = each
+        
+        else: #都可以种
+            best_val = -1000
+            for x in xi:
+                for y in xi:
+                    if x == y and x!= -1:
+                        continue
+                    if int(x!=-1)*50 + int(y!=-1)*100 >self.sun_value:
+                        continue
+                    sum_loss = 0
+                    for row in range(5):
+                        Dist = zombie_pivot[0,row] - plant_pivot[0,row]
+                        if x == row or y == row:
+                            Dist -= c.GRID_X_SIZE
+                        During = Dist/self.v_zombie
+                        AD = During * (plant_pivot[2,row] + int(y == row))/self.T_attack
+                        sum_loss += min(AD - zombie_pivot[1,row],0)
+                        
+                    temp_val = int(x != -1) + 10*sum_loss 
+                    if best_val < temp_val:
+                        best_val = temp_val
+                        out1 = x
+                        out2 = y
+        
+        print(out1,out2)
+        print("------------------------")
+        if out1 != -1:
+            self.state.my_addPlant(int(plant_pivot[3,out1])+1,out1,c.SUNFLOWER)
+        if out2 != -1:
+            self.state.my_addPlant(int(plant_pivot[3,out2])+1,out2,c.PEASHOOTER)
+        return
 
     def my_update(self):
         if self.state_name == c.LEVEL:
@@ -134,20 +273,26 @@ class Control():
                 #     子弹状态：self.bullet_state_all[0].state（fly：正常飞行；explode：击中目标）
                 # 无子弹则为[]
                 self.bullet_state_all = self.state.bullet_state_all
-    # function helps AI join the game in a setting delay
+    
+    def AI(self):
+        self.LinearControl()
+    def run(self):
+        self.AI()
+        self.timer = Timer(self.delay, self.run,())
+        self.timer.start()
+
     def main(self):
-        AlphaPlant=AImodel.agent(3)
-        AlphaPlant.run()
+        self.run()
         while not self.done:
             self.event_loop()
             self.update() 
             pg.display.update()
             self.clock.tick(self.fps)
             self.my_update()
-            if c.AUTO:
-                self.ai_test()
+            self.count_time += 1
+            #if c.AUTO:
+            #self.LinearControl()
         print('game over')
-        AlphaPlant.timer.cancel()
 
 def get_image(sheet, x, y, width, height, colorkey=c.BLACK, scale=1):
         image = pg.Surface([width, height])
@@ -219,14 +364,14 @@ def load_all_gfx(directory, colorkey=c.WHITE, accept=('.png', '.jpg', '.bmp', '.
     return graphics
 
 def loadZombieImageRect():
-    file_path = os.path.join('source', 'data', 'entity', 'zombie.json')
+    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'zombie.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
     return data[c.ZOMBIE_IMAGE_RECT]
 
 def loadPlantImageRect():
-    file_path = os.path.join('source', 'data', 'entity', 'plant.json')
+    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'plant.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
@@ -236,6 +381,6 @@ pg.init()
 pg.display.set_caption(c.ORIGINAL_CAPTION)
 SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
 
-GFX = load_all_gfx(os.path.join("resources","graphics"))
+GFX = load_all_gfx(os.path.join(path1,"AI-for-plant","resources","graphics"))
 ZOMBIE_RECT = loadZombieImageRect()
 PLANT_RECT = loadPlantImageRect()
