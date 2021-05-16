@@ -15,6 +15,8 @@ class Menu(tool.State):
         
         self.setupBackground()
         self.setupOption()
+        if c.AUTO:
+            self.done = True
 
     def setupBackground(self):
         frame_rect = [80, 0, 800, 600]
