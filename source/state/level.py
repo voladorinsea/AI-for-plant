@@ -171,10 +171,14 @@ class Level(tool.State):
             self.produce_sun = False
         self.sun_timer = self.current_time
 
+        # intialize the game properties
+
+        self.sun_value=0
         self.has_zombie = 0
         self.zombie_state_all = []
         self.has_bullet = 0
         self.bullet_state_all = []
+        self.plant_state_all = plant_state_map(np.zeros((5,9)),np.zeros((5,9)))
 
         self.removeMouseImage()
         self.setupGroups()
@@ -543,6 +547,10 @@ class Level(tool.State):
             zombies = pg.sprite.spritecollide(car, self.zombie_groups[car.map_y], False, collided_func)
             for zombie in zombies:
                 if zombie and zombie.state != c.DIE:
+                    if c.AUTO:
+                        #if the car is set to walk then restart the game 
+                        self.initPlay(self.panel.mySelectedCards())
+                        self.result = c.LOSE
                     car.setWalk()
                     zombie.setDie()
             if car.dead:
