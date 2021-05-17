@@ -186,7 +186,8 @@ class Level(tool.State):
         self.has_bullet = 0
         self.bullet_state_all = []
         for i in range(self.map_y_len):
-
+            if len(self.plant_groups[i]) == 0:
+                self.plant_state_all.plant_pos[i] = np.array([0,0,0,0,0,0,0,0,0])
             for plant_state in self.plant_groups[i]:
                 col = int((plant_state.rect.centerx-75)/80)
                 row = int((plant_state.rect.bottom-160)/100)
