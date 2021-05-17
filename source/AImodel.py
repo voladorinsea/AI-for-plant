@@ -12,7 +12,7 @@ import random
 class value_network():
     def __init__(self,learning_rate,gama,epsilon):
         self.learning_rate=learning_rate
-        self.w=np.mat(np.zeros([12,19]))
+        self.w=np.mat(np.zeros([13,19]))
         self.gama=gama
         self.epsilon=epsilon
         self.PEASHOOTERcd = gm.get_value("PEASHOOTER_COOL")
@@ -254,7 +254,7 @@ class env():
 
         IntactState =  list(self.PlantHandle(self.row))
         IntactState.extend(self.ZombieHandle(self.row))
-        #IntactState.append(gm.get_value("sun_value"))
+        IntactState.append(gm.get_value("sun_value")/250)
         return IntactState
 
     def SelectAction(self):
