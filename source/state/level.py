@@ -549,8 +549,9 @@ class Level(tool.State):
                 if zombie and zombie.state != c.DIE:
                     if c.AUTO:
                         #if the car is set to walk then restart the game 
-                        self.initPlay(self.panel.mySelectedCards())
                         self.result = c.LOSE
+                        gm.set_value("State",self.result)
+                        self.initPlay(self.panel.mySelectedCards())
                     car.setWalk()
                     zombie.setDie()
             if car.dead:

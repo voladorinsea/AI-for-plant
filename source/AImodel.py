@@ -162,6 +162,7 @@ class env():
         self.GameState = gm.get_value("State")
         if self.GameState == c.LOSE:
             reward = -1
+            print("The reward is:",reward)
         elif self.GameState == c.GAMING:
             reward = 0
         elif self.GameState == c.WIN:
@@ -240,7 +241,7 @@ class env():
             return [ZombieHealth,ZombiePos/850,ZombieFrontal/850]
 
     def SelectRow(self):
-        minus=850
+        minus=1
         row=-1
         for i in range(5):
             if self.ZombieHandle(i)[2]<minus:
