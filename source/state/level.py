@@ -592,6 +592,7 @@ class Level(tool.State):
             self.zombie_groups[map_y].remove(zombie)
             self.hypno_zombie_groups[map_y].add(zombie)
         plant.kill()
+        #gm.set_value("plant_state_all",self.result)
 
     def checkPlant(self, plant, i):
         zombie_len = len(self.zombie_groups[i])
