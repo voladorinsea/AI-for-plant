@@ -153,8 +153,9 @@ class env():
             self.timer.start()
             return 
         
-        self.row =self.SelectRow()
+        
         self.updateState()
+        self.row =self.SelectRow()
         self.count = 1 + self.count
         
         NowState = self.StateZip()
@@ -241,11 +242,17 @@ class env():
             return [ZombieHealth/100,ZombiePos/850,ZombieFrontal/850]
 
     def SelectRow(self):
-        minus=1
+        maxium=0
         row=-1
         for i in range(5):
-            if self.ZombieHandle(i)[2]<minus:
-                minus=self.ZombieHandle(i)[2]
+            defendnum=0
+            for j in self.PlantHandle(i):
+                if j==2:
+                    defendnum=defendnum+1
+            print(defendnum)
+            t=self.ZombieHandle(i)[0]*(1+1/(self.ZombieHandle(i)[1]))/(defendnum+0.25)*(1+1/(self.ZombieHandle(i)[2]))
+            if t>maxium:
+                maxium=t
                 row=i
         if row==-1:
             row=random.randint(0,4)
