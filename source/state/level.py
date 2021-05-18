@@ -212,6 +212,7 @@ class Level(tool.State):
         self.zombie_state_all = []
         self.has_bullet = 0
         self.bullet_state_all = []
+        self.plant_state_all = plant_state_map(np.zeros((5, 9)), np.zeros((5, 9)))
         for i in range(self.map_y_len):
             if len(self.plant_groups[i]) == 0:
                 self.plant_state_all.plant_pos[i] = np.array([0,0,0,0,0,0,0,0,0])
