@@ -104,6 +104,9 @@ class env():
         self.SunValue = gm.get_value("sun_value")
         self.count = 0
         self.exit = 1
+        self.way=-1
+        self.last_zombie=[0,0,850]
+        self.zombie=[0,0,850]
         gm.set_value("exit",self.exit)
 
 
@@ -168,15 +171,22 @@ class env():
             reward = 0
         elif self.GameState == c.WIN:
             reward = 1
+        #elif self.zombie[2]>self.last_zombie[2] and self.way==self.row:
+        #    reward = 1
+
+        
         if reward == 1:
             print("The reward is:",reward)
        
-        if self.time !=1:
+        if self.time !=1 and self.way==self.row:
             self.value_network.gradient(NowState, reward, self.last_state,self.action)
         else:
             self.time = 2
-        
+
+        self.last_zombie=self.zombie    
+        self.way=self.row
         while(gm.get_value("State") != c.GAMING):
+            self.way=self.row
             self.row =self.SelectRow()
             self.updateState()
             NowState = self.StateZip()
@@ -249,7 +259,7 @@ class env():
             for j in self.PlantHandle(i):
                 if j==2:
                     defendnum=defendnum+1
-            print(defendnum)
+            #print(defendnum)
             t=self.ZombieHandle(i)[0]*(1+1/(self.ZombieHandle(i)[1]))/(defendnum+0.25)*(1+1/(self.ZombieHandle(i)[2]))
             if t>maxium:
                 maxium=t
@@ -258,9 +268,9 @@ class env():
             row=random.randint(0,4)
         return row 
     def StateZip(self):
-
+        self.zombie=self.ZombieHandle(self.row)
         IntactState =  list(self.PlantHandle(self.row))
-        IntactState.extend(self.ZombieHandle(self.row))
+        IntactState.extend(self.zombie)
         IntactState.append(gm.get_value("sun_value")/250)
         return IntactState
 
