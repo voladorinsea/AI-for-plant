@@ -62,6 +62,15 @@ class Level(tool.State):
         file_path = os.path.join(path1,'source', 'data', 'map', map_file)
         f = open(file_path)
         self.map_data = json.load(f)
+        
+        if True: #True是自己设置僵尸，False是用原本的
+            self.map_data['zombie_list'] = []
+            time = [2000,4000] #僵尸出现的时间（ms）
+            map_y = [0,2]  #僵尸出现的行
+            name = ['Zombie','FlagZombie'] #僵尸种类：Zombie、FlagZombie、ConeheadZombie、NewspaperZombie、BucketheadZombie
+            for i in range(len(time)):
+                self.map_data['zombie_list'].append({'time':time[i],'map_y':map_y[i],'name':name[i]})
+        
         f.close()
     
     def setupBackground(self):
