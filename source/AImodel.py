@@ -32,7 +32,7 @@ class value_network():
         '''
         # based on epsilon-greedy policy
         ActionGraph=np.ones(19)
-        v1 = np.asarray(self.state_valuesearch(state))
+        v1 = np.asarray(self.state_valuesearch(state)[0])
         for i in range(19):
             if actionList[i]==0:
                 ActionGraph[i]=-1000
@@ -57,7 +57,7 @@ class value_network():
         next_valueList=self.state_valuesearch(state)
         # using TD(0)
         #next_valueList[action]
-        maxvalue = next_valueList.max()
+        maxvalue = next_valueList[0].max()
         sample_value=reward+self.gama*maxvalue
         evaluate_value=self.state_valuesearch(last_state)
         maxvalue2 = evaluate_value[0,action]
@@ -69,7 +69,7 @@ class value_network():
         delta_w=self.learning_rate*(sample_value-maxvalue2)*t
         #print(delta_w)
         self.w=self.w+delta_w
-        #print(self.w.T)
+        print(self.w.T)
     
 
     def state_valuesearch(self,state):
@@ -213,6 +213,7 @@ class env():
         elif species == 2:
             GetState.my_addPlant(x,y,c.PEASHOOTER)
         #self.state, reward, self.check, self.last_state=self.episode_action(action)
+        self.way=self.row
         self.last_state = NowState
         self.action = action
         self.timer = Timer(self.delay, self.run,())

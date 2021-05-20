@@ -63,7 +63,7 @@ class Level(tool.State):
         f = open(file_path)
         self.map_data = json.load(f)
         
-        if True: #True是自己设置僵尸，False是用原本的
+        if False: #True是自己设置僵尸，False是用原本的
             self.map_data['zombie_list'] = []
             time = [2000,4000] #僵尸出现的时间（ms）
             map_y = [0,2]  #僵尸出现的行
