@@ -48,8 +48,8 @@ class Bullet(pg.sprite.Sprite):
         self.rect.x = x
         self.rect.y = start_y
         self.dest_y = dest_y
-        self.y_vel = 4 if (dest_y > start_y) else -4
-        self.x_vel = 4
+        self.y_vel = 4 * c.accelerate if (dest_y > start_y) else -4 * c.accelerate
+        self.x_vel = 4 * c.accelerate
         self.damage = damage
         self.ice = ice
         self.state = c.FLY
@@ -94,7 +94,7 @@ class Bullet(pg.sprite.Sprite):
             if self.rect.x > c.SCREEN_WIDTH:
                 self.kill()
         elif self.state == c.EXPLODE:
-            if(self.current_time - self.explode_timer) > 500:
+            if(self.current_time - self.explode_timer) > 500 // c.accelerate:
                 self.kill()
 
     def setExplode(self):
@@ -125,7 +125,7 @@ class Plant(pg.sprite.Sprite):
         self.bullet_group = bullet_group
         self.can_sleep = False
         self.animate_timer = 0
-        self.animate_interval = 100
+        self.animate_interval = 100 // c.accelerate
         self.hit_timer = 0
 
     def loadFrames(self, frames, name, scale, color=c.BLACK):
@@ -187,7 +187,7 @@ class Plant(pg.sprite.Sprite):
             self.animate_timer = self.current_time
         
         self.image = self.frames[self.frame_index]
-        if(self.current_time - self.hit_timer) >= 200:
+        if(self.current_time - self.hit_timer) >= 200 // c.accelerate:
             self.image.set_alpha(255)
         else:
             self.image.set_alpha(192)
@@ -227,7 +227,7 @@ class Sun(Plant):
             scale = 0.6
             self.sun_value = 12
         Plant.__init__(self, x, y, c.SUN, 0, None, scale)
-        self.move_speed = 1
+        self.move_speed = 1 * c.accelerate
         self.dest_x = dest_x
         self.dest_y = dest_y
         self.die_timer = 0
@@ -280,7 +280,7 @@ class PeaShooter(Plant):
         self.shoot_timer = 0
         
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 2000:
+        if (self.current_time - self.shoot_timer) > 2000 // c.accelerate:
             self.bullet_group.add(Bullet(self.rect.right, self.rect.y, self.rect.y,
                                     c.BULLET_PEA, c.BULLET_DAMAGE_NORMAL, False))
             self.shoot_timer = self.current_time
@@ -291,7 +291,7 @@ class RepeaterPea(Plant):
         self.shoot_timer = 0
 
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 2000:
+        if (self.current_time - self.shoot_timer) > 2000 // c.accelerate:
             self.bullet_group.add(Bullet(self.rect.right, self.rect.y, self.rect.y,
                                     c.BULLET_PEA, c.BULLET_DAMAGE_NORMAL, False))
             self.bullet_group.add(Bullet(self.rect.right + 40, self.rect.y, self.rect.y,
@@ -306,7 +306,7 @@ class ThreePeaShooter(Plant):
         self.bullet_groups = bullet_groups
 
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 2000:
+        if (self.current_time - self.shoot_timer) > 2000 // c.accelerate:
             offset_y = 9 # modify bullet in the same y position with bullets of other plants
             for i in range(3):
                 tmp_y = self.map_y + (i - 1)
@@ -323,7 +323,7 @@ class SnowPeaShooter(Plant):
         self.shoot_timer = 0
 
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 2000:
+        if (self.current_time - self.shoot_timer) > 2000 // c.accelerate:
             self.bullet_group.add(Bullet(self.rect.right, self.rect.y, self.rect.y,
                                     c.BULLET_PEA_ICE, c.BULLET_DAMAGE_NORMAL, True))
             self.shoot_timer = self.current_time
@@ -379,10 +379,10 @@ class CherryBomb(Plant):
         if self.start_boom:
             if self.bomb_timer == 0:
                 self.bomb_timer = self.current_time
-            elif(self.current_time - self.bomb_timer) > 500:
+            elif(self.current_time - self.bomb_timer) > 500 // c.accelerate:
                 self.health = 0
         else:
-            if (self.current_time - self.animate_timer) > 100:
+            if (self.current_time - self.animate_timer) > 100 // c.accelerate:
                 self.frame_index += 1
                 if self.frame_index >= self.frame_num:
                     self.setBoom()
@@ -394,9 +394,9 @@ class CherryBomb(Plant):
 class Chomper(Plant):
     def __init__(self, x, y):
         Plant.__init__(self, x, y, c.CHOMPER, c.PLANT_HEALTH, None)
-        self.animate_interval = 250
+        self.animate_interval = 250 // c.accelerate
         self.digest_timer = 0
-        self.digest_interval = 15000
+        self.digest_interval = 15000 // c.accelerate
         self.attack_zombie = None
         self.zombie_group = None
 
@@ -476,7 +476,7 @@ class PuffShroom(Plant):
         self.frames = self.idle_frames
 
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 3000:
+        if (self.current_time - self.shoot_timer) > 3000 // c.accelerate:
             self.bullet_group.add(Bullet(self.rect.right, self.rect.y + 10, self.rect.y + 10,
                                     c.BULLET_MUSHROOM, c.BULLET_DAMAGE_NORMAL, True))
             self.shoot_timer = self.current_time
@@ -490,7 +490,7 @@ class PuffShroom(Plant):
 class PotatoMine(Plant):
     def __init__(self, x, y):
         Plant.__init__(self, x, y, c.POTATOMINE, c.PLANT_HEALTH, None)
-        self.animate_interval = 300
+        self.animate_interval = 300 // c.accelerate
         self.is_init = True
         self.init_timer = 0
         self.bomb_timer = 0
@@ -518,7 +518,7 @@ class PotatoMine(Plant):
         if self.is_init:
             if self.init_timer == 0:
                 self.init_timer = self.current_time
-            elif (self.current_time - self.init_timer) > 15000:
+            elif (self.current_time - self.init_timer) > 15000 // c.accelerate:
                 self.changeFrames(self.idle_frames)
                 self.is_init = False
 
@@ -532,7 +532,7 @@ class PotatoMine(Plant):
         if self.bomb_timer == 0:
             self.bomb_timer = self.current_time
             self.changeFrames(self.explode_frames)
-        elif (self.current_time - self.bomb_timer) > 500:
+        elif (self.current_time - self.bomb_timer) > 500 // c.accelerate:
             self.health = 0
 
 class Squash(Plant):
@@ -580,11 +580,11 @@ class Squash(Plant):
         elif self.aim_timer == 0:
             self.aim_timer = self.current_time
             self.changeFrames(self.aim_frames)
-        elif (self.current_time - self.aim_timer) > 1000:
+        elif (self.current_time - self.aim_timer) > 1000 // c.accelerate:
             self.changeFrames(self.attack_frames)
             self.rect.centerx = self.attack_zombie.rect.centerx
             self.squashing = True
-            self.animate_interval = 300
+            self.animate_interval = 300 // c.accelerate
 
     def getPosition(self):
         return self.orig_pos
@@ -592,7 +592,7 @@ class Squash(Plant):
 class Spikeweed(Plant):
     def __init__(self, x, y):
         Plant.__init__(self, x, y, c.SPIKEWEED, c.PLANT_HEALTH, None)
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.attack_timer = 0
 
     def loadImages(self, name, scale):
@@ -600,7 +600,7 @@ class Spikeweed(Plant):
 
     def setIdle(self):
         print('spikeweed idle')
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.state = c.IDLE
 
     def canAttack(self, zombie):
@@ -611,11 +611,11 @@ class Spikeweed(Plant):
 
     def setAttack(self, zombie_group):
         self.zombie_group = zombie_group
-        self.animate_interval = 50
+        self.animate_interval = 50 // c.accelerate
         self.state = c.ATTACK
 
     def attacking(self):
-        if (self.current_time - self.attack_timer) > 2000:
+        if (self.current_time - self.attack_timer) > 2000 // c.accelerate:
             self.attack_timer = self.current_time
             for zombie in self.zombie_group:
                 if self.canAttack(zombie):
@@ -645,14 +645,14 @@ class Jalapeno(Plant):
 
     def animation(self):
         if self.start_explode:
-            if(self.current_time - self.animate_timer) > 100:
+            if(self.current_time - self.animate_timer) > 100 // c.accelerate:
                 self.frame_index += 1
                 if self.frame_index >= self.frame_num:
                     self.health = 0
                     return
                 self.animate_timer = self.current_time
         else:
-            if (self.current_time - self.animate_timer) > 100:
+            if (self.current_time - self.animate_timer) > 100 // c.accelerate:
                 self.frame_index += 1
                 if self.frame_index >= self.frame_num:
                     self.setExplode()
@@ -706,7 +706,7 @@ class ScaredyShroom(Plant):
         self.changeFrames(self.idle_frames)
 
     def attacking(self):
-        if (self.current_time - self.shoot_timer) > 2000:
+        if (self.current_time - self.shoot_timer) > 2000 // c.accelerate:
             self.bullet_group.add(Bullet(self.rect.right, self.rect.y + 40, self.rect.y + 40,
                                     c.BULLET_MUSHROOM, c.BULLET_DAMAGE_NORMAL, True))
             self.shoot_timer = self.current_time
@@ -715,7 +715,7 @@ class SunShroom(Plant):
     def __init__(self, x, y, sun_group):
         Plant.__init__(self, x, y, c.SUNSHROOM, c.PLANT_HEALTH, None)
         self.can_sleep = True
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.sun_timer = 0
         self.sun_group = sun_group
         self.is_big = False
@@ -742,7 +742,7 @@ class SunShroom(Plant):
         if not self.is_big:
             if self.change_timer == 0:
                 self.change_timer = self.current_time
-            elif (self.current_time - self.change_timer) > 25000:
+            elif (self.current_time - self.change_timer) > 25000 // c.accelerate:
                 self.changeFrames(self.big_frames)
                 self.is_big = True
         
@@ -789,14 +789,14 @@ class IceShroom(Plant):
 
     def animation(self):
         if self.start_freeze:
-            if(self.current_time - self.animate_timer) > 500:
+            if(self.current_time - self.animate_timer) > 500 // c.accelerate:
                 self.frame_index += 1
                 if self.frame_index >= self.frame_num:
                     self.health = 0
                     return
                 self.animate_timer = self.current_time
         else:
-            if (self.current_time - self.animate_timer) > 100:
+            if (self.current_time - self.animate_timer) > 100 // c.accelerate:
                 self.frame_index += 1
                 if self.frame_index >= self.frame_num:
                     if self.state == c.SLEEP:
@@ -814,7 +814,7 @@ class HypnoShroom(Plant):
     def __init__(self, x, y):
         Plant.__init__(self, x, y, c.HYPNOSHROOM, 1, None)
         self.can_sleep = True
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
 
     def loadImages(self, name, scale):
         self.idle_frames = []
@@ -838,9 +838,9 @@ class WallNutBowling(Plant):
         self.level = level
         self.init_rect = self.rect.copy()
         self.rotate_degree = 0
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.move_timer = 0
-        self.move_interval = 70
+        self.move_interval = 70 // c.accelerate
         self.vel_x = random.randint(12, 15)
         self.vel_y = 0
         self.disable_hit_y = -1
@@ -921,9 +921,9 @@ class RedWallNutBowling(Plant):
         self.explode_x_range = c.GRID_X_SIZE
         self.init_rect = self.rect.copy()
         self.rotate_degree = 0
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.move_timer = 0
-        self.move_interval = 70
+        self.move_interval = 70 // c.accelerate
         self.vel_x = random.randint(12, 15)
 
     def loadImages(self, name, scale):
@@ -955,7 +955,7 @@ class RedWallNutBowling(Plant):
         if self.explode_timer == 0:
             self.explode_timer = self.current_time
             self.changeFrames(self.explode_frames)
-        elif (self.current_time - self.explode_timer) > 500:
+        elif (self.current_time - self.explode_timer) > 500 // c.accelerate:
             self.health = 0
 
     def animation(self):

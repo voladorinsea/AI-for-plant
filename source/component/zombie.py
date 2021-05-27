@@ -30,11 +30,11 @@ class Zombie(pg.sprite.Sprite):
         self.animate_timer = 0
         self.attack_timer = 0
         self.state = c.WALK
-        self.animate_interval = 150
+        self.animate_interval = 150 // c.accelerate
         self.ice_slow_ratio = 1
         self.ice_slow_timer = 0
         self.hit_timer = 0
-        self.speed = 1
+        self.speed = 1 * c.accelerate
         self.freeze_timer = 0
         self.is_hypno = False # the zombie is hypo and attack other zombies when it ate a HypnoShroom
     
@@ -153,7 +153,7 @@ class Zombie(pg.sprite.Sprite):
         self.image = self.frames[self.frame_index]
         if self.is_hypno:
             self.image = pg.transform.flip(self.image, True, False)
-        if(self.current_time - self.hit_timer) >= 200:
+        if(self.current_time - self.hit_timer) >= 200 // c.accelerate:
             self.image.set_alpha(255)
         else:
             self.image.set_alpha(192)
@@ -179,7 +179,7 @@ class Zombie(pg.sprite.Sprite):
     
     def setWalk(self):
         self.state = c.WALK
-        self.animate_interval = 150
+        self.animate_interval = 150 // c.accelerate
         
         if self.helmet:
             self.changeFrames(self.helmet_walk_frames)
@@ -193,7 +193,7 @@ class Zombie(pg.sprite.Sprite):
         self.prey_is_plant = is_plant
         self.state = c.ATTACK
         self.attack_timer = self.current_time
-        self.animate_interval = 100
+        self.animate_interval = 100 // c.accelerate
         
         if self.helmet:
             self.changeFrames(self.helmet_attack_frames)
@@ -204,12 +204,12 @@ class Zombie(pg.sprite.Sprite):
     
     def setDie(self):
         self.state = c.DIE
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.changeFrames(self.die_frames)
     
     def setBoomDie(self):
         self.state = c.DIE
-        self.animate_interval = 200
+        self.animate_interval = 200 // c.accelerate
         self.changeFrames(self.boomdie_frames)
 
     def setFreeze(self, ice_trap_image):
@@ -241,7 +241,7 @@ class ZombieHead(Zombie):
         self.frames = self.die_frames
 
     def setWalk(self):
-        self.animate_interval = 100
+        self.animate_interval = 100 // c.accelerate
 
 class NormalZombie(Zombie):
     def __init__(self, x, y, head_group):
