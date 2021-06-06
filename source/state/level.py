@@ -6,8 +6,10 @@ import pygame as pg
 import numpy as np
 from .. import tool
 from .. import constants as c
+import source.GlobalManager as gm
 from ..component import map, plant, zombie, menubar
-
+import time
+path1=os.path.abspath('.')
 #Edit by Chenxin Jiang
 class zombie_state_single():
     def __init__(self,name,x,y,health,state):
@@ -41,8 +43,10 @@ class Level(tool.State):
         self.bullet_state_all = []
         #self.frozen_dict = {}
         self.plant_state_all = plant_state_map(np.zeros((5,9)),np.zeros((5,9)))
+        
 
     def startup(self, current_time, persist):
+        
         self.game_info = persist
         self.persist = self.game_info
         self.game_info[c.CURRENT_TIME] = current_time
@@ -55,9 +59,18 @@ class Level(tool.State):
 
     def loadMap(self):
         map_file = 'level_' + str(self.game_info[c.LEVEL_NUM]) + '.json'
-        file_path = os.path.join(path1,'AI-for-plant','source', 'data', 'map', map_file)
+        file_path = os.path.join(path1,'source', 'data', 'map', map_file)
         f = open(file_path)
         self.map_data = json.load(f)
+        
+        if False: #True是自己设置僵尸，False是用原本的
+            self.map_data['zombie_list'] = []
+            time = [2000,4000] #僵尸出现的时间（ms）
+            map_y = [0,2]  #僵尸出现的行
+            name = ['Zombie','FlagZombie'] #僵尸种类：Zombie、FlagZombie、ConeheadZombie、NewspaperZombie、BucketheadZombie
+            for i in range(len(time)):
+                self.map_data['zombie_list'].append({'time':time[i],'map_y':map_y[i],'name':name[i]})
+        
         f.close()
     
     def setupBackground(self):
@@ -90,7 +103,7 @@ class Level(tool.State):
 
         self.zombie_list = []
         for data in self.map_data[c.ZOMBIE_LIST]:
-            self.zombie_list.append((data['time'], data['name'], data['map_y']))
+            self.zombie_list.append((data['time']//c.accelerate, data['name'], data['map_y']))
         self.zombie_start_time = 0
         self.zombie_list.sort(key=takeTime)
 
@@ -147,9 +160,13 @@ class Level(tool.State):
         self.initPlay(self.panel.mySelectedCards())
     
     def initPlay(self, card_list):
+        
+        #value=gm.get_value('a')
         self.state = c.PLAY
         self.restart = True
         self.result = c.GAMING
+        gm.set_value("State",self.result)
+        gm.set_value("restart",self.restart)
         if self.bar_type == c.CHOOSEBAR_STATIC:
             self.menubar = menubar.MenuBar(card_list, self.map_data[c.INIT_SUN_NAME])
         else:
@@ -176,6 +193,7 @@ class Level(tool.State):
         self.setupGroups()
         self.setupZombies()
         self.setupCars()
+        
 
     def play(self, mouse_pos, mouse_click):
         self.restart = False
@@ -376,10 +394,10 @@ class Level(tool.State):
         # map_x, map_y = self.map.getMapIndex(x, y)
         if not self.menubar.my_checkCardClick(name):
             return 
-        if (map_x<0)|(map_x>4) :
+        if (map_x<0)|(map_x>8) :
             print("Plant denied for invalid x:%d"%map_x)
             return 
-        if (map_y<0)|(map_y>8) :
+        if (map_y<0)|(map_y>4) :
             print("Plant denied for invalid y:%d"%map_y)
             return 
         x ,y = self.map.getMapGridPos(map_x,map_y)
@@ -542,8 +560,10 @@ class Level(tool.State):
                 if zombie and zombie.state != c.DIE:
                     if c.AUTO:
                         #if the car is set to walk then restart the game 
-                        self.initPlay(self.panel.mySelectedCards())
                         self.result = c.LOSE
+                        gm.set_value("State",self.result)
+                        time.sleep(2)
+                        self.initPlay(self.panel.mySelectedCards())
                     car.setWalk()
                     zombie.setDie()
             if car.dead:
@@ -582,6 +602,7 @@ class Level(tool.State):
             self.zombie_groups[map_y].remove(zombie)
             self.hypno_zombie_groups[map_y].add(zombie)
         plant.kill()
+        #gm.set_value("plant_state_all",self.result)
 
     def checkPlant(self, plant, i):
         zombie_len = len(self.zombie_groups[i])
@@ -667,6 +688,13 @@ class Level(tool.State):
                 if plant.health <= 0:
                     self.killPlant(plant)
 
+    def killallplants(self):
+        for i in range(self.map_y_len):
+            for plant in self.plant_groups[i]:
+               self.killPlant(plant)
+
+
+
     def checkVictory(self):
         if len(self.zombie_list) > 0:
             return False
@@ -685,16 +713,24 @@ class Level(tool.State):
     def checkGameState(self):
         if self.checkVictory():
             if c.AUTO:
-                self.initPlay(self.panel.mySelectedCards())
                 self.result =c.WIN
+                gm.set_value("State",self.result)
+                self.killallplants()
+                time.sleep(3)
+                self.initPlay(self.panel.mySelectedCards())
+                
             else:
                 self.game_info[c.LEVEL_NUM] += 1
                 self.next = c.GAME_VICTORY
                 self.done = True
         elif self.checkLose():
             if c.AUTO:
-                self.initPlay(self.panel.mySelectedCards())
                 self.result = c.LOSE
+                gm.set_value("State",self.result)
+                self.killallplants()
+                time.sleep(3)
+                self.initPlay(self.panel.mySelectedCards())
+                
             else:
                 self.next = c.GAME_LOSE
                 self.done = True

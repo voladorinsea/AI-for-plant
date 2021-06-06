@@ -10,6 +10,7 @@ import numpy as np
 from random import shuffle
 from . import constants as c
 from . import AImodel
+import source.GlobalManager as gm
 path1=os.path.abspath('.')
 class State():
     def __init__(self):
@@ -33,8 +34,10 @@ class State():
 
 class Control():
     def __init__(self):
+        gm._init_()
         self.delay=0.5
-
+        self.evaluate = AImodel.value_network(0.1,0.5,0.05)
+        self.env = AImodel.env(200,self.evaluate)
         self.screen = pg.display.get_surface()
         self.done = False
         self.clock = pg.time.Clock()
@@ -44,6 +47,7 @@ class Control():
         self.mouse_click = [False, False]  # value:[left mouse click, right mouse click]
         self.current_time = 0.0
         self.state_dict = {}
+
         self.state_name = None
         self.state = None
         self.game_info = {c.CURRENT_TIME:0.0,
@@ -60,6 +64,8 @@ class Control():
         self.zombie_state_all = []
         self.has_bullet = 0
         self.bullet_state_all = []
+        
+
 
     def setup_states(self, state_dict, start_state):
         self.state_dict = state_dict
@@ -72,6 +78,7 @@ class Control():
         if self.state.done:
             self.flip_state()
         self.state.update(self.screen, self.current_time, self.mouse_pos, self.mouse_click)
+        gm.set_value("ALLSTATE",self.state)
         self.mouse_pos = None
         self.mouse_click[0] = False
         self.mouse_click[1] = False
@@ -230,17 +237,19 @@ class Control():
         
         print(out1,out2)
         print("------------------------")
+        print(self.state)
         if out1 != -1:
             self.state.my_addPlant(int(plant_pivot[3,out1])+1,out1,c.SUNFLOWER)
         if out2 != -1:
             self.state.my_addPlant(int(plant_pivot[3,out2])+1,out2,c.PEASHOOTER)
+            
         return
 
     def my_update(self):
         if self.state_name == c.LEVEL:
             if self.state.state == c.PLAY:
                 self.sun_value = self.state.sun_value
-
+                gm.set_value("sun_value",self.sun_value)
                 # 植物信息(class)
                 # 地图上的植物分布：game.plant_state_all.plant_pos
                 #               1、数据类型 np.array(5,9)
@@ -248,10 +257,13 @@ class Control():
                 # 地图上的植物血量：game.plant_state_all.plant_health
                 #               1、数据类型 np.array(5,9) 
                 self.plant_state_all = self.state.plant_state_all
-
+                gm.set_value("plant_state_all",self.plant_state_all)
                 # 是否有僵尸（0无，1有）
                 self.has_zombie = self.state.has_zombie
+                gm.set_value("has_zombie",self.has_zombie)
 
+                gm.set_value("PEASHOOTER_COOL",self.state.menubar.my_checkCardClick(c.PEASHOOTER))
+                gm.set_value("SUNFLOWER_COOL",self.state.menubar.my_checkCardClick(c.SUNFLOWER))
                 # 僵尸信息(list)，其中的每一个元素为一个class
                 # eg:
                 #     僵尸种类：self.zombie_state_all[0].name
@@ -261,10 +273,10 @@ class Control():
                 #     僵尸状态：self.zombie_state_all[0].state（walk：正常行走；attack：被攻击）
                 # 无僵尸则为[]
                 self.zombie_state_all = self.state.zombie_state_all
-
+                gm.set_value("zombie_state_all",self.zombie_state_all)
                 # 是否有子弹（0无，1有）
                 self.has_bullet = self.state.has_bullet
-
+                #gm.set_value("has_bullet",self.has_bullet)
                 # 子弹信息(list)，其中的每一个元素为一个class
                 # eg:
                 #     子弹种类：self.bullet_state_all[0].name
@@ -273,7 +285,7 @@ class Control():
                 #     子弹状态：self.bullet_state_all[0].state（fly：正常飞行；explode：击中目标）
                 # 无子弹则为[]
                 self.bullet_state_all = self.state.bullet_state_all
-    
+
     def AI(self):
         self.LinearControl()
     def run(self):
@@ -282,16 +294,25 @@ class Control():
         self.timer.start()
 
     def main(self):
-        self.run()
+        #self.run()
+        #gm.set_value("ALLSTATE",self.state)
+    
+        self.env.run()
         while not self.done:
+            #value=gm.get_value('State')
+            #print(value)
+            
             self.event_loop()
             self.update() 
             pg.display.update()
             self.clock.tick(self.fps)
             self.my_update()
             self.count_time += 1
-            #if c.AUTO:
+            
+            if gm.get_value("exit") == 0:
+                break
             #self.LinearControl()
+        self.env.cancel()
         print('game over')
 
 def get_image(sheet, x, y, width, height, colorkey=c.BLACK, scale=1):
@@ -364,14 +385,14 @@ def load_all_gfx(directory, colorkey=c.WHITE, accept=('.png', '.jpg', '.bmp', '.
     return graphics
 
 def loadZombieImageRect():
-    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'zombie.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'zombie.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
     return data[c.ZOMBIE_IMAGE_RECT]
 
 def loadPlantImageRect():
-    file_path = os.path.join(path1,"AI-for-plant",'source', 'data', 'entity', 'plant.json')
+    file_path = os.path.join(path1,'source', 'data', 'entity', 'plant.json')
     f = open(file_path)
     data = json.load(f)
     f.close()
@@ -381,6 +402,6 @@ pg.init()
 pg.display.set_caption(c.ORIGINAL_CAPTION)
 SCREEN = pg.display.set_mode(c.SCREEN_SIZE)
 
-GFX = load_all_gfx(os.path.join(path1,"AI-for-plant","resources","graphics"))
+GFX = load_all_gfx(os.path.join(path1,"resources","graphics"))
 ZOMBIE_RECT = loadZombieImageRect()
 PLANT_RECT = loadPlantImageRect()
