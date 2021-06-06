@@ -4,7 +4,7 @@ import random
 import pygame as pg
 from .. import tool
 from .. import constants as c
-
+import numpy as np
 PANEL_Y_START = 87
 PANEL_X_START = 22
 PANEL_Y_INTERNAL = 74

@@ -45,13 +45,18 @@ class value_network():
         if gen1>=self.epsilon:
             return maxindex
         else:
-            choose=[]
-            for i in range(19):
-                if actionList[i]==1:
-                    choose.append(i)
-            n=len(choose)
-            gen2=random.randint(0,n-1)
-            return choose[gen2]
+            gen3=random.random()
+            if gen3>=0.7:
+                choose=[]
+                for i in range(19):
+                    if actionList[i]==1:
+                        choose.append(i)
+                n=len(choose)
+                gen2=random.randint(0,n-1)
+                return choose[gen2]
+            else:
+                return 18
+
 
     def gradient(self,state,reward,last_state,action):
         next_valueList=self.state_valuesearch(state)
@@ -89,7 +94,7 @@ class value_network():
 # return {observation,action,reward,last_observation}
 
 class env():
-    def __init__(self,cycle,value_network,delay=1):
+    def __init__(self,cycle,value_network,delay=0.2):
         self.time=1
         #self.end=end
         #elf.env=gym.make('CartPole-v0')
@@ -135,9 +140,9 @@ class env():
             self.openGame()
             self.run()
             # accelerate the train process
-            self.value_network.epsilon-=0.002
-            if self.value_network.epsilon<=0.1:
-                self.value_network.epsilo=0.05
+            self.value_network.epsilon-=0.02
+            if self.value_network.epsilon<=0.05:
+                self.value_network.epsilon=0.05
             #for i in range(self.aimstep):
             
 
@@ -157,20 +162,35 @@ class env():
             return 
         
         
+        
         self.updateState()
         self.row =self.SelectRow()
         self.count = 1 + self.count
-        
-        NowState = self.StateZip()
+        NowState = []
+        now_num = [0,0,0,0,0]
+        self.Processreward = [0,0,0,0,0]
+        for i in range(5):
+            NowState.append(self.StateZip(i))
+            now_num[i] = self.PlantNum(i)
         print(NowState)
         self.GameState = gm.get_value("State")
         if self.GameState == c.LOSE:
             reward = -1
             print("The reward is:",reward)
         elif self.GameState == c.GAMING:
+            #reward = 0
             reward = 0
+            if self.time !=1:
+                for i in range(5):
+                    if NowState[i][11] > self.last_state[i][11]:
+                        self.Processreward[i] = 0.01
+                    if now_num[i] < self.lastnum[i]:
+                        self.Processreward[i] -= 0.02
+
         elif self.GameState == c.WIN:
             reward = 1
+
+        
         #elif self.zombie[2]>self.last_zombie[2] and self.way==self.row:
         #    reward = 1
 
@@ -178,8 +198,22 @@ class env():
         if reward == 1:
             print("The reward is:",reward)
        
-        if self.time !=1 and self.way==self.row:
-            self.value_network.gradient(NowState, reward, self.last_state,self.action)
+        
+
+        if self.time !=1:
+            if self.GameState == c.GAMING:
+                for i in range(5):
+                    if self.row == i:
+                        self.value_network.gradient(NowState[i], self.Processreward[i], self.last_state[i],self.action)
+                    else:
+                        self.value_network.gradient(NowState[i], self.Processreward[i], self.last_state[i],18)
+
+            else:
+                for i in range(5):
+                    if self.row == i:
+                        self.value_network.gradient(NowState[i], reward, self.last_state[i],self.action)
+                    else:
+                        self.value_network.gradient(NowState[i], reward, self.last_state[i],18)
         else:
             self.time = 2
 
@@ -189,9 +223,9 @@ class env():
             self.way=self.row
             self.row =self.SelectRow()
             self.updateState()
-            NowState = self.StateZip()
+            NowState[self.row] = self.StateZip(self.row)
 
-        action=self.value_network.policysearch(NowState,self.SelectAction())
+        action=self.value_network.policysearch(NowState[self.row],self.SelectAction())
         print(action)
         if action <9 and action >=0:
             #2是豌豆
@@ -216,6 +250,7 @@ class env():
         self.way=self.row
         self.last_state = NowState
         self.action = action
+        self.lastnum = now_num
         self.timer = Timer(self.delay, self.run,())
         self.timer.start()
 
@@ -231,6 +266,14 @@ class env():
         #print(self.Plant)
 
         return self.Plant.plant_pos[row,:]
+
+    def PlantNum(self,row):
+        count = 0
+        for each in self.Plant.plant_pos[row,:]:
+            if each != 0:
+                count += 1
+        return count
+
 
     def ZombieHandle(self,row):
         ZombieHealth = 0
@@ -268,9 +311,9 @@ class env():
         if row==-1:
             row=random.randint(0,4)
         return row 
-    def StateZip(self):
-        self.zombie=self.ZombieHandle(self.row)
-        IntactState =  list(self.PlantHandle(self.row))
+    def StateZip(self,row):
+        self.zombie=self.ZombieHandle(row)
+        IntactState =  list(self.PlantHandle(row))
         IntactState.extend(self.zombie)
         IntactState.append(gm.get_value("sun_value")/250)
         return IntactState

@@ -1,7 +1,7 @@
 __author__ = 'marble_xu'
 
 # speed up the game
-accelerate = 5 
+accelerate = 10 
 
 START_LEVEL_NUM = 1
 
