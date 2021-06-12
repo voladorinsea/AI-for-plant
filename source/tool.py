@@ -36,7 +36,7 @@ class Control():
     def __init__(self):
         gm._init_()
         self.delay=0.5
-        self.evaluate = AImodel.value_network(0.5,0.5,1)
+        self.evaluate = AImodel.value_network(1,0.5,1)
         self.env = AImodel.env(200,self.evaluate)
         self.screen = pg.display.get_surface()
         self.done = False

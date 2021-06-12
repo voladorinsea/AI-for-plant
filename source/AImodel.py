@@ -12,12 +12,13 @@ import random
 class value_network():
     def __init__(self,learning_rate,gama,epsilon):
         self.learning_rate=learning_rate
-        self.w=np.mat(np.zeros([13,19]))
+        self.w=np.mat(np.zeros([30,21]))
         self.gama=gama
         self.epsilon=epsilon
         self.PEASHOOTERcd = gm.get_value("PEASHOOTER_COOL")
         self.SUNFLOWERcd = gm.get_value("SUNFLOWER_COOL")
         self.SunValue = gm.get_value("sun_value")
+        self.count = 0
         '''
         self.Pidout=PID.PIDcontrol(0.3,1000,5,0,0)
         self.Pidin=PID.PIDcontrol(0.5,1000,0,50,0)
@@ -31,9 +32,9 @@ class value_network():
         action = 1 if out2<=50 else 0
         '''
         # based on epsilon-greedy policy
-        ActionGraph=np.ones(19)
+        ActionGraph=np.ones(21)
         v1 = np.asarray(self.state_valuesearch(state)[0])
-        for i in range(19):
+        for i in range(21):
             if actionList[i]==0:
                 ActionGraph[i]=-1000
                 continue
@@ -45,17 +46,14 @@ class value_network():
         if gen1>=self.epsilon:
             return maxindex
         else:
-            gen3=random.random()
-            if gen3>=0.7:
-                choose=[]
-                for i in range(19):
-                    if actionList[i]==1:
-                        choose.append(i)
-                n=len(choose)
-                gen2=random.randint(0,n-1)
-                return choose[gen2]
-            else:
-                return 18
+            choose=[]
+            for i in range(21):
+                if actionList[i]==1:
+                    choose.append(i)
+            n=len(choose)
+            gen2=random.randint(0,n-1)
+            return choose[gen2]
+            
 
 
     def gradient(self,state,reward,last_state,action):
@@ -75,8 +73,14 @@ class value_network():
         #print(delta_w)
         self.w=self.w+delta_w
         print(self.w.T)
-    
+        self.count += 1
 
+        self.epsilon -= 0.01
+        if self.epsilon<=0.05:
+            self.epsilon = 0.05
+        self.learning_rate -= 0.001
+        if self.learning_rate<=0.005:
+            self.learning_rate = 0.005
     def state_valuesearch(self,state):
         # based on best policy principle
         state=np.array(state)
@@ -84,7 +88,7 @@ class value_network():
         # print(value0)
         return v1[0]
     def action_to_onehot(self,action):
-        actionlist = np.zeros(19)
+        actionlist = np.zeros(21)
         actionlist[action] = 1
         return actionlist
 
@@ -94,7 +98,7 @@ class value_network():
 # return {observation,action,reward,last_observation}
 
 class env():
-    def __init__(self,cycle,value_network,delay=0.2):
+    def __init__(self,cycle,value_network,delay=0.4):
         self.time=1
         #self.end=end
         #elf.env=gym.make('CartPole-v0')
@@ -131,29 +135,7 @@ class env():
         self.PEASHOOTERcd = gm.get_value("PEASHOOTER_COOL")
         self.SUNFLOWERcd = gm.get_value("SUNFLOWER_COOL")
         self.SunValue = gm.get_value("sun_value")
-
-
-    def training(self):
-        cycle=0
-        while(cycle!=self.cycle):
-            self.check=0
-            self.openGame()
-            self.run()
-            # accelerate the train process
-            self.value_network.epsilon-=0.02
-            if self.value_network.epsilon<=0.05:
-                self.value_network.epsilon=0.05
-            #for i in range(self.aimstep):
-            
-
-            if self.check==1:
-                self.score.extend([i+1])
-                print("Episode finished after {} timesteps".format(i + 1))
-                self.timer.cancel()
-                    #break
-            cycle=cycle+1
-        print("training finished!!!")
-
+        self.GameState = gm.get_value("State")
     def run(self):
         #action = self.agent.execute()
         if gm.get_value("State") == None:
@@ -161,82 +143,72 @@ class env():
             self.timer.start()
             return 
         
-        
-        
         self.updateState()
-        self.row =self.SelectRow()
-        self.count = 1 + self.count
-        NowState = []
-        now_num = [0,0,0,0,0]
-        self.Processreward = [0,0,0,0,0]
-        for i in range(5):
-            NowState.append(self.StateZip(i))
-            now_num[i] = self.PlantNum(i)
-        print(NowState)
-        self.GameState = gm.get_value("State")
-        if self.GameState == c.LOSE:
-            reward = -1
-            print("The reward is:",reward)
-        elif self.GameState == c.GAMING:
-            #reward = 0
-            reward = 0
-            if self.time !=1:
-                for i in range(5):
-                    if NowState[i][11] > self.last_state[i][11]:
-                        self.Processreward[i] = 0.01
-                    if now_num[i] < self.lastnum[i]:
-                        self.Processreward[i] -= 0.02
-
-        elif self.GameState == c.WIN:
-            reward = 1
-
-        
-        #elif self.zombie[2]>self.last_zombie[2] and self.way==self.row:
-        #    reward = 1
-
-        
-        if reward == 1:
-            print("The reward is:",reward)
-       
-        
-
-        if self.time !=1:
-            if self.GameState == c.GAMING:
-                for i in range(5):
-                    if self.row == i:
-                        self.value_network.gradient(NowState[i], self.Processreward[i], self.last_state[i],self.action)
-                    else:
-                        self.value_network.gradient(NowState[i], self.Processreward[i], self.last_state[i],18)
-
-            else:
-                for i in range(5):
-                    if self.row == i:
-                        self.value_network.gradient(NowState[i], reward, self.last_state[i],self.action)
-                    else:
-                        self.value_network.gradient(NowState[i], reward, self.last_state[i],18)
+        if self.SunValue <50:
+            1
         else:
-            self.time = 2
 
-        self.last_zombie=self.zombie    
-        self.way=self.row
-        while(gm.get_value("State") != c.GAMING):
-            self.way=self.row
-            self.row =self.SelectRow()
-            self.updateState()
-            NowState[self.row] = self.StateZip(self.row)
+            if self.time !=1:
+                self.lastrow_newState = self.StateZip(self.lastrow)
+                self.NowZomH = self.ZombieHealth(self.lastrow)
+                reward =self.Getreward(self.tmp,self.lastrow_state,self.lastrow_newState,self.lastrow_action,self.LastZomH,self.NowZomH)
+                self.value_network.gradient(self.lastrow_newState, reward, self.lastrow_state,self.lastrow_action)
+                
+                
 
-        action=self.value_network.policysearch(NowState[self.row],self.SelectAction())
-        print(action)
+                if self.GameState == c.GAMING:
+                    self.row =self.SelectRow()
+                    self.NewState=self.StateZip(self.row)
+                    self.NowZomH = self.ZombieHealth(self.row)
+                    self.action=self.value_network.policysearch(self.NewState,self.SelectAction())
+                    self.action,self.tmp = self.actionlim(self.action)
+
+                    self.actionexe(self.action,self.row)
+
+
+                    
+                    self.LastZomH = self.NowZomH
+                    self.lastrow = self.row
+                    self.lastrow_state = self.NewState
+                    self.lastrow_action = self.action
+
+                else:
+                    self.time = 1
+                    while self.GameState != c.GAMING:
+                        self.GameState = gm.get_value("State")
+                        1
+            else:
+                self.row =self.SelectRow()
+                self.NewState=self.StateZip(self.row)
+                self.action=self.value_network.policysearch(self.NewState,self.SelectAction())
+                self.action,self.tmp = self.actionlim(self.action)
+                self.actionexe(self.action,self.row)
+                #僵尸血量
+                self.NowZomH = self.ZombieHealth(self.row)
+
+
+
+                self.lastrow = self.row
+                self.lastrow_action = self.action
+                self.lastrow_state = self.NewState
+                self.LastZomH = self.NowZomH
+                self.time = 2
+
+        self.timer = Timer(self.delay, self.run,())
+        self.timer.start()
+       
+
+    def actionexe(self,action,row):
         if action <9 and action >=0:
-            #2是豌豆
-            x = action
-            y = self.row
-            species = 2
-        elif action >=9 and action <=17:
             #1是向日葵
-            x = action-9
-            y = self.row
+            x = action
+            y = row
             species = 1
+        elif action >=9 and action <=17:
+            #2是豌豆
+            x = action-9
+            y = row
+            species = 2
         else:
             x = -1
             y = -1
@@ -246,35 +218,107 @@ class env():
             GetState.my_addPlant(x,y,c.SUNFLOWER)
         elif species == 2:
             GetState.my_addPlant(x,y,c.PEASHOOTER)
-        #self.state, reward, self.check, self.last_state=self.episode_action(action)
-        self.way=self.row
-        self.last_state = NowState
-        self.action = action
-        self.lastnum = now_num
-        self.timer = Timer(self.delay, self.run,())
-        self.timer.start()
 
+    def Getreward(self,tmp,laststate,nowstate,action,LastZomH,NowZomH):
 
-        if self.count == self.cycle:
-            self.exit = 0
+        reward = 0
+        lastnum = self.PlantNum(laststate)
+        nownum = self.PlantNum(nowstate)
+        lastFront = self.ZombieFront(laststate)
+        nowFront = self.ZombieFront(nowstate)
+        NewPlantPos = self.ActionPos(action)*9/8.0
+        if tmp == 1:
+            reward += 0.01
+        if self.GameState == c.LOSE:
+            reward -= 1
+        elif self.GameState == c.WIN:
+            reward += 1
+        else:
+            if lastnum>nownum:
+                reward -= 0.02
+            if lastFront < nowFront:
+                reward += 0.01
+            if NewPlantPos + 9/8.0 >= lastFront:
+                reward -= 0.01
+            if LastZomH > NowZomH:
+                reward += 0.01
+        return reward
 
+    def actionlim(self,action):
+        #self.SunValue
+        #false 正在冷却
+        #self.PEASHOOTERcd
+        #self.SUNFLOWERcd
+        reward = 0
+        if self.SunValue <100 and self.SunValue >= 50:
+            if action <=8 and self.SUNFLOWERcd == False:
+                action = 19
+                reward = 1
+            elif action<=17 and action>=9: 
+                action =18
+                reward = 1
+        elif self.SunValue >=100:
+            if action <=8 and self.SUNFLOWERcd == False:
+                action = 19
+                reward = 1
+            elif action<=17 and action>=9 and self.PEASHOOTERcd == False: 
+                action =20
+                reward = 1
+        return action,reward
+            
     def cancel(self):
         self.timer.cancel()
-
-    def PlantHandle(self,row):
+    
+    def PlantHandle1(self,row):
         #gm.set_value("plant_state_all",self.plant_state_all)
         #print(self.Plant)
 
         return self.Plant.plant_pos[row,:]
+    
+    def PlantHandle(self,row):
+        #0-8 向日葵   9-17是豌豆
+        newlist = [0] * 18
+        for i in range(len(self.Plant.plant_pos[row,:])):
+            if  self.Plant.plant_pos[row,i] == 1:
+                newlist[i] = 1
+            elif  self.Plant.plant_pos[row,i] == 2:
+                newlist[i+9] = 1
+        return newlist
 
-    def PlantNum(self,row):
+    def PlantNum(self,state):
         count = 0
-        for each in self.Plant.plant_pos[row,:]:
-            if each != 0:
+        for i in range(18):
+            if state[i]==1:
                 count += 1
+        
         return count
 
-
+    def ActionPos(self,action):
+        if action <9 and action >=0:
+            #1是向日葵
+            x = action
+        
+        elif action >=9 and action <=17:
+            #2是豌豆
+            x = action-9
+            
+        else:
+            x = -1
+        return x
+            
+    def ZombieHealth(self,row):
+        ZombieHealth = 0
+        ZombieFrontal = 850
+        if self.hasZombie:
+            for each in self.Zombie:
+                if each.y == row:
+                    #ZombieHealth = ZombieHealth + each.health
+                    #ZombiePos = each.health*each.x+ZombiePos
+                    if ZombieFrontal > each.x:
+                        ZombieFrontal = each.x
+                        ZombieHealth = each.health
+        return ZombieHealth
+    
     def ZombieHandle(self,row):
         ZombieHealth = 0
         ZombiePos = 0
@@ -294,30 +338,83 @@ class env():
         else:
             ZombiePos = 850
             return [ZombieHealth/100,ZombiePos/850,ZombieFrontal/850]
+    
+    def PixelToBox(self,Pixel):
+        Box = Pixel // 85
+        return Box
+    
+    def ZombieHandleArray(self,row):
+        ZombieList = [0] * 10
+        numList = [0] * 10
+        if self.hasZombie:
+            for each in self.Zombie:
+                if each.y == row:
+                    Boxx = self.PixelToBox(each.x)
+                    #TotalHealth = ZombieList[Boxx]*numList[Boxx]+each.health 
+                    numList[Boxx] += 1
+                    #ZombieList[Boxx] = #TotalHealth/numList[Boxx]
+            return list(np.array(numList)/10)
+        else:
+            return list(np.array(numList)/10)
 
     def SelectRow(self):
-        maxium=0
-        row=-1
+        minimum = 1
+        maxium=-1
+        row1= -1
+        row2 = -1
         for i in range(5):
             defendnum=0
-            for j in self.PlantHandle(i):
+            for j in self.PlantHandle1(i):
                 if j==2:
                     defendnum=defendnum+1
             #print(defendnum)
-            t=self.ZombieHandle(i)[0]*(1+1/(self.ZombieHandle(i)[1]))/(defendnum+0.25)*(1+1/(self.ZombieHandle(i)[2]))
+            #t=self.ZombieHandle(i)[0]*(1+1/(self.ZombieHandle(i)[1]))/(defendnum+0.25)*(1+1/(self.ZombieHandle(i)[2]))
+            t = self.ZombieHandle(i)[1] + defendnum*0.2
             if t>maxium:
                 maxium=t
-                row=i
-        if row==-1:
-            row=random.randint(0,4)
-        return row 
+                row1=i
+            if t<=minimum:
+                minimum=t
+                row2=i
+        if minimum < 0.8:
+            return row2
+        else:
+            return row1
+        
+        #if row==-1:
+            #row=random.randint(0,4)
+
+        #return row 
+    
+    
     def StateZip(self,row):
-        self.zombie=self.ZombieHandle(row)
-        IntactState =  list(self.PlantHandle(row))
+        self.zombie=self.ZombieHandleArray(row)
+        IntactState =self.PlantHandle(row)
         IntactState.extend(self.zombie)
-        IntactState.append(gm.get_value("sun_value")/250)
+        IntactState.append(self.PEASHOOTERcd)
+        IntactState.append(self.SUNFLOWERcd)
+        #IntactState.append(gm.get_value("sun_value")/250)
         return IntactState
 
+    def ZombieFront(self,state):
+        for i in range(10):
+            if state[18+i] !=0:
+                return i
+        return i
+    def SelectAction(self):
+        Action = np.ones(21)
+        #Action = Action + 1
+        self.updateState()
+        
+        for i in range(9):
+            if self.Plant.plant_pos[self.row,i] != 0 :
+                Action[i] = 0
+                Action[i+9] = 0
+        
+        return np.array(Action)
+    
+    
+    '''
     def SelectAction(self):
         Action = np.ones(19)
         #Action = Action + 1
@@ -337,3 +434,4 @@ class env():
                 Action[i+9] = 0
         
         return np.array(Action)
+    '''
