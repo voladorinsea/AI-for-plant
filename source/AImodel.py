@@ -98,7 +98,7 @@ class value_network():
 # return {observation,action,reward,last_observation}
 
 class env():
-    def __init__(self,cycle,value_network,delay=0.4):
+    def __init__(self,cycle,value_network,delay=0.2):
         self.time=1
         #self.end=end
         #elf.env=gym.make('CartPole-v0')
@@ -151,13 +151,13 @@ class env():
             if self.time !=1:
                 self.lastrow_newState = self.StateZip(self.lastrow)
                 self.NowZomH = self.ZombieHealth(self.lastrow)
-                reward =self.Getreward(self.tmp,self.lastrow_state,self.lastrow_newState,self.lastrow_action,self.LastZomH,self.NowZomH)
+                reward =self.Getreward(self.tmp,self.lastrow_state,self.lastrow_newState,self.lastrow_action,self.LastZomH,self.NowZomH,self.lastlabel)
                 self.value_network.gradient(self.lastrow_newState, reward, self.lastrow_state,self.lastrow_action)
                 
                 
 
                 if self.GameState == c.GAMING:
-                    self.row =self.SelectRow()
+                    self.row, self.label =self.SelectRow()
                     self.NewState=self.StateZip(self.row)
                     self.NowZomH = self.ZombieHealth(self.row)
                     self.action=self.value_network.policysearch(self.NewState,self.SelectAction())
@@ -169,6 +169,7 @@ class env():
                     
                     self.LastZomH = self.NowZomH
                     self.lastrow = self.row
+                    self.lastlabel = self.label
                     self.lastrow_state = self.NewState
                     self.lastrow_action = self.action
 
@@ -176,9 +177,10 @@ class env():
                     self.time = 1
                     while self.GameState != c.GAMING:
                         self.GameState = gm.get_value("State")
+                        self.updateState()
                         1
             else:
-                self.row =self.SelectRow()
+                self.row, self.label =self.SelectRow()
                 self.NewState=self.StateZip(self.row)
                 self.action=self.value_network.policysearch(self.NewState,self.SelectAction())
                 self.action,self.tmp = self.actionlim(self.action)
@@ -187,7 +189,7 @@ class env():
                 self.NowZomH = self.ZombieHealth(self.row)
 
 
-
+                self.lastlabel = self.label
                 self.lastrow = self.row
                 self.lastrow_action = self.action
                 self.lastrow_state = self.NewState
@@ -219,8 +221,7 @@ class env():
         elif species == 2:
             GetState.my_addPlant(x,y,c.PEASHOOTER)
 
-    def Getreward(self,tmp,laststate,nowstate,action,LastZomH,NowZomH):
-
+    def Getreward(self,tmp,laststate,nowstate,action,LastZomH,NowZomH,label):
         reward = 0
         lastnum = self.PlantNum(laststate)
         nownum = self.PlantNum(nowstate)
@@ -233,15 +234,32 @@ class env():
             reward -= 1
         elif self.GameState == c.WIN:
             reward += 1
-        else:
-            if lastnum>nownum:
-                reward -= 0.02
-            if lastFront < nowFront:
+        elif self.GameState == c.GAMING:
+            if label == 1 and 0<=action and action<=8:
                 reward += 0.01
-            if NewPlantPos + 9/8.0 >= lastFront:
+            elif label == 1 and 9<=action and action<=17:
                 reward -= 0.01
-            if LastZomH > NowZomH:
+            elif label == 2 and 9<=action and action<=17:
                 reward += 0.01
+            elif label == 2 and 0<=action and action<=8:
+                reward -= 0.01
+
+
+            if NewPlantPos + 9/8.0 >= lastFront:
+                reward -= 0.02
+
+            if NewPlantPos - 9/8.0 < lastFront:
+                reward += 0.01
+            #if LastZomH > NowZomH:
+                '''
+                print("lastZomH:",LastZomH)
+                print("NowZomH:",NowZomH)
+                print("laststate:")
+                print(laststate)
+                print("laststate:")
+                print(nowstate)
+                '''
+            #    reward += 0.01
         return reward
 
     def actionlim(self,action):
@@ -362,14 +380,18 @@ class env():
         maxium=-1
         row1= -1
         row2 = -1
+        num = -1
         for i in range(5):
             defendnum=0
+            sunflower = 0
             for j in self.PlantHandle1(i):
                 if j==2:
                     defendnum=defendnum+1
+                if j==1:
+                    sunflower += 1
             #print(defendnum)
             #t=self.ZombieHandle(i)[0]*(1+1/(self.ZombieHandle(i)[1]))/(defendnum+0.25)*(1+1/(self.ZombieHandle(i)[2]))
-            t = self.ZombieHandle(i)[1] + defendnum*0.2
+            t = self.ZombieHandle(i)[1] + defendnum*0.5 - sunflower*0.1
             if t>maxium:
                 maxium=t
                 row1=i
@@ -377,9 +399,11 @@ class env():
                 minimum=t
                 row2=i
         if minimum < 0.8:
-            return row2
+            num = 2
+            return row2, num
         else:
-            return row1
+            num = 1
+            return row1, num
         
         #if row==-1:
             #row=random.randint(0,4)
