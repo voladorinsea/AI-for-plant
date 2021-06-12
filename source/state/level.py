@@ -253,6 +253,11 @@ class Level(tool.State):
             result = self.menubar.checkCardClick(mouse_pos)
             if result:
                 self.setupMouseImage(result[0], result[1])
+            else:
+                if mouse_click[0]:
+                    zombie_y = int((mouse_pos[1]-80)/100)
+                    self.createZombie(c.NORMAL_ZOMBIE,zombie_y)
+                    
         elif self.drag_plant:
             if mouse_click[1]:
                 self.removeMouseImage()
