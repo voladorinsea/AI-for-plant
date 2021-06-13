@@ -189,13 +189,23 @@ class Level(tool.State):
         for i in range(self.map_y_len):
 
             for plant_state in self.plant_groups[i]:
-                col = int((plant_state.rect.centerx-75)/80)
+                col = min(int((plant_state.rect.centerx-75)/80),8)
                 row = int((plant_state.rect.bottom-160)/100)
 
                 if plant_state.name == 'SunFlower':
                     self.plant_state_all.plant_pos[row,col] = 1
                 elif plant_state.name == 'Peashooter':
                     self.plant_state_all.plant_pos[row, col] = 2
+                elif plant_state.name == 'WallNut':
+                    self.plant_state_all.plant_pos[row, col] = 3
+                elif plant_state.name == 'Squash':
+                    self.plant_state_all.plant_pos[row, col] = 4
+                elif plant_state.name == 'Jalapeno':
+                    self.plant_state_all.plant_pos[row, col] = 5
+                elif plant_state.name == 'RepeaterPea':
+                    self.plant_state_all.plant_pos[row, col] = 6
+                self.plant_state_all.plant_health[row, col] = plant_state.health
+
                 self.plant_state_all.plant_health[row, col] = plant_state.health
 
             for Zombie_State in self.zombie_groups[i]:
@@ -347,10 +357,14 @@ class Level(tool.State):
         #print('addPlant map[%d,%d], grid pos[%d, %d] pos[%d, %d]' % (map_x, map_y, x, y, pos[0], pos[1]))
 
     def my_sunCost(self,name):
-        if name == c.SUNFLOWER:
+        if name == c.SUNFLOWER or name == c.SQUASH or name == c.WALLNUT:
             return 50
         elif name == c.PEASHOOTER:
             return 100
+        elif name == c.JALAPENO:
+            return 125
+        elif name == c.REPEATERPEA:
+            return 200
 
     def my_addPlant(self,map_x,map_y,name):
         #此处加入检查是否能够种植

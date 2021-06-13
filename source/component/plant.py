@@ -268,10 +268,14 @@ class SunFlower(Plant):
         self.sun_group = sun_group
     
     def idling(self):
-        if self.sun_timer == 0:
-            self.sun_timer = self.current_time - (c.FLOWER_SUN_INTERVAL - 6000)
-        elif (self.current_time - self.sun_timer) > c.FLOWER_SUN_INTERVAL:
-            self.sun_group.add(Sun(self.rect.centerx, self.rect.bottom, self.rect.right, self.rect.bottom + self.rect.h // 2))
+        # if self.sun_timer == 0:
+        #     self.sun_timer = self.current_time - (c.FLOWER_SUN_INTERVAL - 6000)
+        # elif (self.current_time - self.sun_timer) > c.FLOWER_SUN_INTERVAL:
+        #     self.sun_group.add(Sun(self.rect.centerx, self.rect.bottom, self.rect.right, self.rect.bottom + self.rect.h // 2))
+        #     self.sun_timer = self.current_time
+        if (self.current_time - self.sun_timer) > c.FLOWER_SUN_INTERVAL:
+            self.sun_group.add(
+                Sun(self.rect.centerx, self.rect.bottom, self.rect.right, self.rect.bottom + self.rect.h // 2))
             self.sun_timer = self.current_time
 
 class PeaShooter(Plant):

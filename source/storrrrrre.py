@@ -109,28 +109,6 @@ class Control():
                 
     def getMapGridPosY(self, map_y):
         return map_y * c.GRID_Y_SIZE + c.GRID_Y_SIZE//5 * 3 + c.MAP_OFFSET_Y
-    
-    class ZombieList():
-        ''' 僵尸类 '''
-        def __init__(self):
-            self.zombie_list = [list() for i in range(5)]
-
-        class zombie:
-            def __init__(self):
-                self.x = 0
-                self.GridY = 0
-                self.GridX = 0
-                self.Hp = 0
-        def add_zombie(self,zombie):
-            row = int(zombie.GridY)
-            self.zombie_list[row].append(zombie)
-                
-        def erase_zombie(self,row,index,fullline):
-            if fullline != 1:
-                self.zombie_list[row].pop(index)
-            else:
-                self.zombie_list[row] = []
-            pass
 
     def LinearControl(self):
         if self.state_name != c.LEVEL:
@@ -158,20 +136,18 @@ class Control():
         Sp[1,i] = 第i行的坚果位置(Grid坐标)
         Sp[2,i] = 第i行的坚果血量
         Sp[3,i] = 第i行的倭瓜位置(Grid坐标)
-        Sp[4,i] = 第i行的火爆辣椒位置(Grid坐标)
 
         '''
-        starttime = time.time() 
+
         num_of_sunflower = 0 
         plant_pivot = np.zeros((4,5))
         plant_pivot[0,:] -= 1
         plant_pivot[2,:] -= 1
         plant_pivot[3,:] -= 1
 
-        special_plant = np.zeros((5,5))
+        special_plant = np.zeros((4,5))
         special_plant[1,:] -= 1
         special_plant[3,:] -= 1
-        special_plant[4,:] -= 1
         for y in range(5):
             posX = -1
             for x in range(9):
@@ -186,8 +162,6 @@ class Control():
                     special_plant[2,y] = self.plant_state_all.plant_health[y,x]
                 if self.plant_state_all.plant_pos[y,x] == 4:
                     special_plant[3,y] = x
-                if self.plant_state_all.plant_pos[y,x] == 5:
-                    special_plant[4,y] = x
                  
             plant_pivot[0,y] = self.Grid2PixelsX(posX)
             plant_pivot[1,y] = self.plant_state_all.plant_health[y,posX]
@@ -205,21 +179,12 @@ class Control():
 
         僵尸地图
         Zm[5,9] 五行十列的栅格地图,存储每格僵尸的个数
-
         '''
         zombie_pivot = np.zeros((2,5))
         zombie_map = np.zeros((5,10))
-        zombie_list = self.ZombieList()
         
         if self.has_zombie == 1:
             for i in range(len(self.zombie_state_all)):
-                zombie = zombie_list.zombie()
-                zombie.x = self.zombie_state_all[i].x
-                zombie.GridY = self.zombie_state_all[i].y
-                zombie.GridX = self.PixelsX2Grid(zombie.x)
-                zombie.Hp = self.zombie_state_all[i].health
-                zombie_list.add_zombie(zombie)
-
                 tempY = self.zombie_state_all[i].y
                 tempX = self.zombie_state_all[i].x
                 tempH = self.zombie_state_all[i].health
@@ -229,19 +194,18 @@ class Control():
                 grid_X = self.PixelsX2Grid(tempX)
                 zombie_map[tempY,grid_X] += 1   
                 
+
         for i in range(5):
             if zombie_pivot[1,i] != 0:
                 zombie_pivot[0,i]/=zombie_pivot[1,i]
             else:
                 zombie_pivot[0,i] = c.ZOMBIE_START_X
-        print('plant:',plant_pivot[0,:])
 
-        # print(zombie_map)     
+        # print(zombie_map)      
         xi = [-1,0,1,2,3,4] #决策变量：在哪一行种植向日葵
         yi = [-1,0,1,2,3,4] #决策变量：在哪一行种植豌豆射手
         zi = [-1,0,1,2,3,4] #决策变量：在哪一行种坚果
         wi = [-1,0,1,2,3,4] #决策变量：在哪一行种倭瓜
-        qi = [-1,0,1,2,3,4] #决策变量：在哪一行种火爆辣椒
         
         if num_of_sunflower >= 12 or self.state.menubar.my_checkCardClick(c.SUNFLOWER) == False:
             xi = [-1]
@@ -251,137 +215,95 @@ class Control():
             zi = [-1]
         if self.state.menubar.my_checkCardClick(c.SQUASH) == False or self.sun_value < 50:
             wi = [-1]
-        if self.state.menubar.my_checkCardClick(c.JALAPENO) == False or self.sun_value < 125:
-            qi = [-1]
 
         out1 = -1 # 求解结果 在哪一行种向日葵 
         out2 = -1 # 求解结果：在哪一行种豌豆射手
         out3 = -1 # 求解结果：在哪一行种坚果
         out4 = -1 # 求解结果：在哪一行种倭瓜
-        out5 = -1 # 求解结果：在哪一行种火爆辣椒
 
         squash_position = -1
         wallnut_position = -1
-        jalapeno_position = -1
-        
+        squash_position = -1
+
         # 倭瓜先行
         if wi != -1:
             fatal_row = 0
-            pos = -1
             min_dist = 800
 
             for row in range(5):
-                
-                During = (zombie_pivot[0,row] - plant_pivot[0,row])/self.v_zombie
-                AD = During * (special_plant[0,row])/self.T_attack
-                diff = AD - zombie_pivot[1,row]
-                if diff >= 3:
-                    Dist = 1000
-                else:
-                    if len(zombie_list.zombie_list[row]) == 0:
-                        Dist = 1000
-                    else:
-                        for line in range(len(zombie_list.zombie_list[row])):
-                            if zombie_list.zombie_list[row][line].Hp > 3: # 尽量不杀残血僵尸
-                                break
-                        if line < len(zombie_list.zombie_list[row])-1:
-                            Dist = zombie_list.zombie_list[row][line].x - plant_pivot[0,row]
-                        else: Dist = zombie_list.zombie_list[row][0].x - plant_pivot[0,row]
-
+                Dist = zombie_pivot[0,row] - plant_pivot[0,row]
                 if Dist < min_dist:
                     fatal_row = row
                     min_dist = Dist
-                    pos = line
 
             if min_dist < 300:
                 out4 =  fatal_row
-                squash_position = min(self.PixelsX2Grid(zombie_list.zombie_list[out4][pos].x),8)
+                squash_position = min(self.PixelsX2Grid(zombie_pivot[0,out4]),8)
                 if squash_position == plant_pivot[3,out4]:
                     squash_position = min(squash_position + 1, 8)
                     plant_pivot[2,out4] += 1 #偏置+1
                 self.sun_value -= 50
-                zombie_list.erase_zombie(out4,pos,-1)
+                zombie_pivot[1,i] -= 10
 
         # 线性评估法
         best_val = -1000
         for x in xi: # x是向日葵的决策变量
             for y in yi: # y是豌豆的决策变量
                 for z in zi: # z是坚果的决策变量
-                    for q in qi: # q是火爆辣椒的决策变量
-                        if x == y and x!= -1: # 在同一个位置种两个植物
-                            continue
-                        if (int(x!=-1)*50 + int(y!=-1)*100 + int(z!=-1)*50 
-                            + int(q!=-1)*125 > self.sun_value): 
-                            continue
+                    if x == y and x!= -1: # 在同一个位置种两个植物
+                        continue
+                    if int(x!=-1)*50 + int(y!=-1)*100 + int(z!=-1)*50 >self.sun_value: 
+                        continue
+                    
+                    # 攻击价值
+                    attack_value = 0
+                    for row in range(5):
+                        Dist = zombie_pivot[0,row] - plant_pivot[0,row]
+                        if x == row or y == row:
+                            Dist -= c.GRID_X_SIZE * plant_pivot[2,row]
+                        During = Dist/self.v_zombie
                         
-                        # 攻击价值
-                        attack_value = 0
-                        for row in range(5):
-
-                            # plant_right = plant_pivot[0,row]
-                            # if x == row or y == row:
-                            #     plant_right += c.GRID_X_SIZE * plant_pivot[2,row] 
-                            # temp = zombie_list.zombie_list[row]
-                            # for
-
-                            Dist = zombie_pivot[0,row] - plant_pivot[0,row]
-                            if x == row or y == row:
-                                Dist -= c.GRID_X_SIZE * plant_pivot[2,row]
-                            During = Dist/self.v_zombie
-                            
-                            if special_plant[2,row] != 0: # 此行已有坚果
-                                num_of_zombie = zombie_map[row,int(special_plant[1,row])]
-                                num_of_zombie += zombie_map[row,int(special_plant[1,row])+1]
-                                During += special_plant[2,row]*self.Z_attack/(num_of_zombie+0.01)
-                            
-                            if z == row: #此行新增坚果
-                                temp  = np.nonzero(zombie_map[row,:])[0]
-                                if len(temp) != 0:
-                                    wallnut_position = min(8,temp[0])
-                                else:
-                                    wallnut_position = 8
-                                num_of_zombie = zombie_map[row,int(wallnut_position)]
-                                num_of_zombie += zombie_map[row,int(wallnut_position)+1]
-                                During += self.Wallnut_HP*self.Z_attack/(num_of_zombie+0.01)
-
-                            AD = During * (special_plant[0,row] + int(y == row))/self.T_attack
-                            Zombie_HP = zombie_pivot[1,row]
-
-                            if special_plant[3,row] != -1: # 有已种出去的倭瓜,僵尸血量--
-                                Zombie_HP -= 10
-                            if special_plant[4,row] != -1 or q == row: # 种辣椒,僵尸血量=0
-                                Zombie_HP = 0
-
-                            attack_value += min(AD - Zombie_HP,0)
-
-                        # 阳光价值
-                        sun_value = 0
-                        if x != -1:
-                            if len(zombie_list.zombie_list[x]) == 0:
-                                Dist = 850
-                            else:
-                                Dist = zombie_list.zombie_list[x][0].x
-                            sun_value = (Dist - plant_pivot[0,x] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
-
-                        # 未来价值
-                        future_value = 0
-                        if y != -1:
-                            if len(zombie_list.zombie_list[y]) == 0:
-                                Dist = 850
-                            else:
-                                Dist = zombie_list.zombie_list[y][0].x
-                            future_value = (Dist - plant_pivot[0,y] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
+                        if special_plant[2,row] != 0: # 此行已有坚果
+                            num_of_zombie = zombie_map[row,int(special_plant[1,row])]
+                            num_of_zombie += zombie_map[row,int(special_plant[1,row])+1]
+                            During += special_plant[2,row]*self.Z_attack/(num_of_zombie+0.01)
                         
-                        temp_val = sun_value + future_value + 2*attack_value 
-    
-                        if best_val < temp_val:
-                            best_val = temp_val
-                            out1 = x
-                            out2 = y
-                            out3 = z
-                            out5 = q
+                        if z == row: #此行新增坚果
+                            temp  = np.nonzero(zombie_map[row,:])[0]
+                            if len(temp) != 0:
+                                wallnut_position = min(8,temp[0])
+                            else:
+                                wallnut_position = 8
+                            num_of_zombie = zombie_map[row,int(wallnut_position)]
+                            num_of_zombie += zombie_map[row,int(wallnut_position)+1]
+                            During += self.Wallnut_HP*self.Z_attack/(num_of_zombie+0.01)
+
+                        AD = During * (special_plant[0,row] + int(y == row))/self.T_attack
+
+                        if special_plant[3,row] != -1: # 有正在出击的倭瓜,僵尸血量--
+                            zombie_pivot[1,row] -= 10
+                        attack_value += min(AD - zombie_pivot[1,row],0)
+
+                    # 阳光价值
+                    sun_value = 0
+                    if x != -1:
+                        sun_value = (zombie_pivot[0,x] - plant_pivot[0,x] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
+
+                    # 未来价值
+                    future_value = 0
+                    if y != -1:
+                        future_value = (zombie_pivot[0,y] - plant_pivot[0,y] - c.GRID_X_SIZE)/c.SCREEN_WIDTH
+                    
+                    temp_val = sun_value + future_value + 2*attack_value 
+                    
+                    # print(temp_val)
+                    if best_val < temp_val:
+                        best_val = temp_val
+                        out1 = x
+                        out2 = y
+                        out3 = z
         
-        print(out1,out2,out3,out4,out5)
+        print(out1,out2,out3,out4)
         print("------------------------")
         if out1 != -1:
             self.state.my_addPlant(int(plant_pivot[3,out1]+plant_pivot[2,out1]),out1,c.SUNFLOWER)
@@ -391,11 +313,6 @@ class Control():
             self.state.my_addPlant(int(wallnut_position),out3,c.WALLNUT)
         if out4 != -1:
             self.state.my_addPlant(int(squash_position),out4,c.SQUASH)
-        if out5 != -1:
-            self.state.my_addPlant(8,out5,c.JALAPENO)
-        endtime = time.time()
-        dtime = endtime - starttime
-        # print("程序运行时间：%.8s s" %dtime)  #显示到微秒
         return
 
     def my_update(self):
